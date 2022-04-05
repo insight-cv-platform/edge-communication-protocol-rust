@@ -67,6 +67,7 @@ pub struct TrackInfo {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use uuid::Uuid;
@@ -75,11 +76,15 @@ mod tests {
     use crate::{pack_stream_name, pack_track_name, Payload, TrackType};
     use crate::protocol::Message;
 
-    const AVRO_PATH: &str = "./API/avro/protocol";
+    fn get_avro_path() -> String {
+        let mut base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        base_dir.push("API/avro/protocol");
+        return String::from(base_dir.to_str().unwrap())
+    }
 
     #[test]
     fn test_load_schemas() {
-        let mb = MessageBuilder::new(AVRO_PATH);
+        let mb = MessageBuilder::new(get_avro_path().as_str());
         for s in MessageBuilder::schema_files() {
             let _s = mb.get_schema(&s);
         }
@@ -90,7 +95,7 @@ mod tests {
         let track_name = pack_track_name(&String::from("test")).unwrap();
         let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
         let stream_name = pack_stream_name(&stream_id);
-        let mb = MessageBuilder::new(AVRO_PATH);
+        let mb = MessageBuilder::new(get_avro_path().as_str());
         let saved_ms = u64::try_from(
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -126,7 +131,7 @@ mod tests {
         let track_name = pack_track_name(&String::from("test")).unwrap();
         let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
         let stream_name = pack_stream_name(&stream_id);
-        let mb = MessageBuilder::new(AVRO_PATH);
+        let mb = MessageBuilder::new(get_avro_path().as_str());
         let mut attributes: HashMap<String, String> = HashMap::default();
         attributes.insert(String::from("key1"), String::from("value1"));
         attributes.insert(String::from("key2"), String::from("value2"));
@@ -157,7 +162,7 @@ mod tests {
     fn test_stream_tracks_request() {
         let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
         let stream_name = pack_stream_name(&stream_id);
-        let mb = MessageBuilder::new(AVRO_PATH);
+        let mb = MessageBuilder::new(get_avro_path().as_str());
         let m = mb.build_stream_tracks_request(0, String::from("/ab/c"), stream_name);
 
         let value = mb.read_protocol_message(&m).unwrap();
@@ -175,7 +180,7 @@ mod tests {
     fn test_stream_tracks_response() {
         let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
         let stream_name = pack_stream_name(&stream_id);
-        let mb = MessageBuilder::new(AVRO_PATH);
+        let mb = MessageBuilder::new(get_avro_path().as_str());
         let _m = mb.build_stream_tracks_respose(0, stream_name, &vec![]);
         let track_name = pack_track_name(&String::from("test")).unwrap();
         let track_name2 = pack_track_name(&String::from("test2")).unwrap();
@@ -204,7 +209,7 @@ mod tests {
         let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
         let stream_name = pack_stream_name(&stream_id);
         let track_name = pack_track_name(&String::from("test")).unwrap();
-        let mb = MessageBuilder::new(AVRO_PATH);
+        let mb = MessageBuilder::new(get_avro_path().as_str());
         let m = mb.build_stream_track_unit_elements_request(
             0,
             String::from("/ab/c"),
@@ -227,7 +232,7 @@ mod tests {
 
     #[test]
     fn test_ping_request() {
-        let mb = MessageBuilder::new(AVRO_PATH);
+        let mb = MessageBuilder::new(get_avro_path().as_str());
         let m = mb.build_ping_request_response(0, String::from("/ab/c"), false);
         let value = mb.read_protocol_message(&m).unwrap();
         let pm = Message::from(&value.0, value.1);
@@ -242,7 +247,7 @@ mod tests {
 
     #[test]
     fn test_ping_response() {
-        let mb = MessageBuilder::new(AVRO_PATH);
+        let mb = MessageBuilder::new(get_avro_path().as_str());
         let m = mb.build_ping_request_response(0, String::from("/ab/c"), true);
         let value = mb.read_protocol_message(&m).unwrap();
         let pm = Message::from(&value.0, value.1);
@@ -260,7 +265,7 @@ mod tests {
         let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
         let stream_name = pack_stream_name(&stream_id);
         let track_name = pack_track_name(&String::from("test")).unwrap();
-        let mb = MessageBuilder::new(AVRO_PATH);
+        let mb = MessageBuilder::new(get_avro_path().as_str());
         let _m = mb.build_stream_track_unit_elements_response(
             0,
             stream_name,
@@ -304,7 +309,7 @@ mod tests {
         let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
         let stream_name = pack_stream_name(&stream_id);
         let track_name = pack_track_name(&String::from("test")).unwrap();
-        let mb = MessageBuilder::new(AVRO_PATH);
+        let mb = MessageBuilder::new(get_avro_path().as_str());
         let m = mb.build_stream_track_units_request(
             0,
             String::from("/ab/c"),
@@ -330,7 +335,7 @@ mod tests {
         let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
         let stream_name = pack_stream_name(&stream_id);
         let track_name = pack_track_name(&String::from("test")).unwrap();
-        let mb = MessageBuilder::new(AVRO_PATH);
+        let mb = MessageBuilder::new(get_avro_path().as_str());
         let m = mb.build_stream_track_units_response(
             0,
             stream_name,
