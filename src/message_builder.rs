@@ -6,13 +6,18 @@ use avro_rs::schema::Name;
 use avro_rs::types::{Record, Value};
 use avro_rs::{from_avro_datum, to_avro_datum, Schema};
 use crate::{ElementType, Payload, StreamName, TrackName, TrackType, utils};
+use crate::utils::gen_hash_map;
 
 type SchemaDirectory = HashMap<String, Schema>;
 
-pub const TRACK_TYPE_SCHEMA: &str = "insight.transport.TrackType.avsc";
-pub const TRACK_INFO_SCHEMA: &str = "insight.transport.TrackInfo.avsc";
-pub const UNIT_SCHEMA: &str = "insight.transport.Unit.avsc";
-pub const UNIT_ELEMENT_MESSAGE_SCHEMA: &str = "insight.transport.UnitElementMessage.avsc";
+pub const STORAGE_SCHEMAS: &str = "storage";
+pub const TRACK_TYPE_SCHEMA: &str = "insight.storage.TrackType.avsc";
+pub const TRACK_INFO_SCHEMA: &str = "insight.storage.TrackInfo.avsc";
+pub const UNIT_SCHEMA: &str = "insight.storage.Unit.avsc";
+pub const UNIT_ELEMENT_MESSAGE_SCHEMA: &str = "insight.storage.UnitElementMessage.avsc";
+pub const UNIT_ELEMENT_VALUE_SCHEMA: &str = "insight.storage.UnitElementValue.avsc";
+
+pub const TRANSPORT_SCHEMAS: &str = "transport";
 pub const NOTIFY_MESSAGE_SCHEMA: &str = "insight.transport.NotifyMessage.avsc";
 pub const STREAM_TRACKS_REQUEST_SCHEMA: &str = "insight.transport.StreamTracksRequest.avsc";
 pub const STREAM_TRACKS_RESPONSE_SCHEMA: &str = "insight.transport.StreamTracksResponse.avsc";
@@ -22,36 +27,45 @@ pub const STREAM_TRACK_UNITS_REQUEST_SCHEMA: &str = "insight.transport.StreamTra
 pub const STREAM_TRACK_UNITS_RESPONSE_SCHEMA: &str = "insight.transport.StreamTrackUnitsResponse.avsc";
 pub const MESSAGE_ENVELOPE_SCHEMA: &str = "insight.transport.MessageEnvelope.avsc";
 pub const PING_REQUEST_RESPONSE_SCHEMA: &str = "insight.transport.PingRequestResponse.avsc";
-pub const UNIT_ELEMENT_VALUE_SCHEMA: &str = "insight.transport.UnitElementValue.avsc";
+
+pub const SERVICE_FFPROBE_SCHEMAS: &str = "services/ffprobe";
+pub const SERVICES_FFPROBE_REQUEST_SCHEMA: &str = "insight.ffprobe.Request.avsc";
+pub const SERVICES_FFPROBE_RESPONSE_SCHEMA: &str = "insight.ffprobe.Response.avsc";
+
 
 pub struct MessageBuilder {
     pub directory: SchemaDirectory,
 }
 
 impl MessageBuilder {
-    pub fn schema_files() -> Vec<String> {
+    pub fn schema_files() -> Vec<(&'static str, &'static str)> {
         vec![
-            String::from(TRACK_TYPE_SCHEMA),
-            String::from(TRACK_INFO_SCHEMA),
-            String::from(UNIT_SCHEMA),
-            String::from(UNIT_ELEMENT_VALUE_SCHEMA),
-            String::from(UNIT_ELEMENT_MESSAGE_SCHEMA),
-            String::from(NOTIFY_MESSAGE_SCHEMA),
-            String::from(STREAM_TRACKS_REQUEST_SCHEMA),
-            String::from(STREAM_TRACKS_RESPONSE_SCHEMA),
-            String::from(STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA),
-            String::from(STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA),
-            String::from(STREAM_TRACK_UNITS_REQUEST_SCHEMA),
-            String::from(STREAM_TRACK_UNITS_RESPONSE_SCHEMA),
-            String::from(PING_REQUEST_RESPONSE_SCHEMA),
-            String::from(MESSAGE_ENVELOPE_SCHEMA),
+            (STORAGE_SCHEMAS, TRACK_TYPE_SCHEMA),
+            (STORAGE_SCHEMAS, TRACK_INFO_SCHEMA),
+            (STORAGE_SCHEMAS, UNIT_SCHEMA),
+            (STORAGE_SCHEMAS, UNIT_ELEMENT_VALUE_SCHEMA),
+            (STORAGE_SCHEMAS, UNIT_ELEMENT_MESSAGE_SCHEMA),
+
+            (TRANSPORT_SCHEMAS, NOTIFY_MESSAGE_SCHEMA),
+            (TRANSPORT_SCHEMAS, STREAM_TRACKS_REQUEST_SCHEMA),
+            (TRANSPORT_SCHEMAS, STREAM_TRACKS_RESPONSE_SCHEMA),
+            (TRANSPORT_SCHEMAS, STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA),
+            (TRANSPORT_SCHEMAS, STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA),
+            (TRANSPORT_SCHEMAS, STREAM_TRACK_UNITS_REQUEST_SCHEMA),
+            (TRANSPORT_SCHEMAS, STREAM_TRACK_UNITS_RESPONSE_SCHEMA),
+            (TRANSPORT_SCHEMAS, PING_REQUEST_RESPONSE_SCHEMA),
+            (TRANSPORT_SCHEMAS, MESSAGE_ENVELOPE_SCHEMA),
+
+            (SERVICE_FFPROBE_SCHEMAS, SERVICES_FFPROBE_REQUEST_SCHEMA),
+            (SERVICE_FFPROBE_SCHEMAS, SERVICES_FFPROBE_RESPONSE_SCHEMA)
+
         ]
     }
 
     pub fn new(path_prefix: &str) -> MessageBuilder {
         let schemas_raw: Vec<String> = Self::schema_files()
             .iter()
-            .map(|schema_name| utils::load_file(Path::new(path_prefix), schema_name))
+            .map(|schema| utils::load_file(Path::new(path_prefix).join(Path::new(schema.0)).as_path(), schema.1))
             .collect();
         let schemas_raw_str: Vec<&str> = schemas_raw.iter().map(|s| s.as_str()).collect();
 
@@ -222,7 +236,7 @@ impl MessageBuilder {
         self.pack_message_into_envelope(STREAM_TRACKS_REQUEST_SCHEMA, record)
     }
 
-    pub fn build_stream_tracks_respose(
+    pub fn build_stream_tracks_response(
         &self,
         request_id: i64,
         stream_name: StreamName,
@@ -379,6 +393,23 @@ impl MessageBuilder {
             },
             _ => Err(String::from("Failed to deserialize the outer message")),
         }
+    }
+
+    pub fn build_services_ffprobe_request(&self, request_id: i64, topic: String, url: String, attributes: HashMap<String, String>) -> Vec<u8> {
+        let mut record = self.get_record(SERVICES_FFPROBE_REQUEST_SCHEMA);
+        record.put("request_id", Value::Long(request_id));
+        record.put("topic", Value::String(topic));
+        record.put("url", Value::String(url));
+        record.put("attributes", gen_hash_map(&attributes));
+        self.pack_message_into_envelope(SERVICES_FFPROBE_REQUEST_SCHEMA, record)
+    }
+
+    pub fn build_services_ffprobe_response(&self, request_id: i64, streams: Vec<HashMap<String, String>>) -> Vec<u8> {
+        let mut record = self.get_record(SERVICES_FFPROBE_RESPONSE_SCHEMA);
+        record.put("request_id", Value::Long(request_id));
+        let streams_array: Vec<Value> = streams.iter().map(|s| gen_hash_map(s)).collect();
+        record.put("streams", Value::Array(streams_array));
+        self.pack_message_into_envelope(SERVICES_FFPROBE_RESPONSE_SCHEMA, record)
     }
 }
 

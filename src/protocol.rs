@@ -111,6 +111,16 @@ pub enum Message {
         topic: String,
         mtype: PingRequestResponseType,
     },
+    ServicesFFprobeRequest {
+        request_id: i64,
+        topic: String,
+        url: String,
+        attributes: HashMap<String, String>,
+    },
+    ServicesFFprobeResponse {
+        request_id: i64,
+        streams: Vec<HashMap<String, String>>,
+    },
     ParsingError(String),
 }
 
@@ -131,7 +141,6 @@ impl Message {
                     (_, Value::Enum(_index, track_type)),
                     (_, Value::Long(unit))
                     ] => {
-
                         Message::UnitElementMessage {
                             stream_unit: Unit::new(stream_name, track_name, track_type, unit.clone()),
                             element: element.clone() as i16,
@@ -318,17 +327,16 @@ impl Message {
                     (_, Value::Enum(_index, track_type)),
                     (_, Value::Long(unit))
                     ] => {
-
                         fn to_payload(v: &Value) -> Option<Payload> {
                             match v {
                                 Value::Record(fields) => match fields.as_slice() {
                                     [
-                                        (_, Value::Bytes(data)),
-                                        (_, Value::Map(attributes))
+                                    (_, Value::Bytes(data)),
+                                    (_, Value::Map(attributes))
                                     ] => {
                                         Some(Payload {
                                             data: data.clone(),
-                                            attributes: attributes.iter().map(|x| (x.0.clone(), value_to_string(x.1).or(Some(String::from(""))).unwrap())).collect()
+                                            attributes: attributes.iter().map(|x| (x.0.clone(), value_to_string(x.1).or(Some(String::from(""))).unwrap())).collect(),
                                         })
                                     }
                                     _ => None
@@ -345,7 +353,6 @@ impl Message {
                         if values_parsed.len() < values.len() {
                             Message::ParsingError(String::from("Not all payload values were parsed correctly"))
                         } else {
-
                             Message::StreamTrackUnitElementsResponse {
                                 request_id: request_id.clone(),
                                 stream_unit: Unit::new(stream_name, track_name, track_type, unit.clone()),
@@ -437,6 +444,59 @@ impl Message {
         }
     }
 
+    fn load_services_ffprobe_request(value: Value) -> Message {
+        match value {
+            Value::Record(fields) => match fields.as_slice() {
+                [
+                (_, Value::Long(request_id)),
+                (_, Value::String(topic)),
+                (_, Value::String(url)),
+                (_, Value::Map(attributes)),
+                ] => {
+                    Message::ServicesFFprobeRequest {
+                        request_id: *request_id,
+                        topic: topic.clone(),
+                        url: url.clone(),
+                        attributes: attributes.iter().map(|x| (x.0.clone(), value_to_string(x.1).or(Some(String::from(""))).unwrap())).collect(),
+                    }
+                }
+                _ => Message::ParsingError(String::from("Unable to match AVRO Record to to FFprobe Request"))
+            }
+            _ => Message::ParsingError(String::from("Unable to match AVRO Record."))
+        }
+    }
+
+    fn load_services_ffprobe_response(value: Value) -> Message {
+        match value {
+            Value::Record(fields) => match fields.as_slice() {
+                [
+                (_, Value::Long(request_id)),
+                (_, Value::Array(streams)),
+                ] => {
+                    let mut response_streams: Vec<HashMap<String, String>> = Default::default();
+                    for s in streams {
+                        match s {
+                            Value::Map(attributes) => {
+                                let attributes: HashMap<String, String>  = attributes.iter()
+                                    .map(|kv| (kv.0.clone(), value_to_string(kv.1).unwrap_or(String::from("")))).collect();
+                                response_streams.push(attributes);
+                            }
+                            _ => panic!("Unexpected structure found, stream attributes must be a `map`")
+                        }
+                    }
+
+                    Message::ServicesFFprobeResponse {
+                        request_id: *request_id,
+                        streams: response_streams,
+                    }
+                }
+                _ => Message::ParsingError(String::from("Unable to match AVRO Record to to FFprobe Response"))
+            }
+            _ => Message::ParsingError(String::from("Unable to match AVRO Record."))
+        }
+    }
+
+
     pub fn from(kind: &String, value: Value) -> Message {
         match kind.as_str() {
             UNIT_ELEMENT_MESSAGE_SCHEMA => Self::load_unit_element_message(value),
@@ -448,6 +508,8 @@ impl Message {
             STREAM_TRACK_UNITS_REQUEST_SCHEMA => Self::load_stream_track_units_request(value),
             STREAM_TRACK_UNITS_RESPONSE_SCHEMA => Self::load_stream_track_units_response(value),
             PING_REQUEST_RESPONSE_SCHEMA => Self::load_ping_request_response(value),
+            SERVICES_FFPROBE_REQUEST_SCHEMA => Self::load_services_ffprobe_request(value),
+            SERVICES_FFPROBE_RESPONSE_SCHEMA => Self::load_services_ffprobe_response(value),
             _ => Message::ParsingError(kind.clone())
         }
     }
@@ -490,8 +552,8 @@ impl Message {
 
             Message::StreamTracksResponse {
                 request_id, stream_name, tracks
-            } => Ok(mb.build_stream_tracks_respose(*request_id, *stream_name,
-                                                   &tracks.iter().map(|x| (x.track_name, x.track_type)).collect())),
+            } => Ok(mb.build_stream_tracks_response(*request_id, *stream_name,
+                                                    &tracks.iter().map(|x| (x.track_name, x.track_type)).collect())),
 
             Message::StreamTrackUnitElementsRequest {
                 request_id,
@@ -538,6 +600,20 @@ impl Message {
                     _ => Err(format!("Unable to serialize from_ms ({:?})/to_ms ({:?}) to AVRO Long field.", from_ms, to_ms))
                 }
             }
+
+            Message::ServicesFFprobeRequest {
+                request_id,
+                topic,
+                url,
+                attributes
+            } => {
+                Ok(mb.build_services_ffprobe_request(*request_id, topic.clone(), url.clone(), attributes.clone()))
+            }
+
+            Message::ServicesFFprobeResponse { request_id, streams } => {
+                Ok(mb.build_services_ffprobe_response(*request_id, streams.clone()))
+            }
+
             _ => Err(format!("Message {:?} can not be serialized", self))
         }
     }
