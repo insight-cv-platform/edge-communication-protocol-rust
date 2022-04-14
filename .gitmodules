@@ -1,4 +1,4 @@
 [submodule "API"]
 	path = API
-	url = https://github.com/insight-cv-platform/API.git
+	url = git@github.com:insight-cv-platform/API.git
 	branch = v0.1.0
