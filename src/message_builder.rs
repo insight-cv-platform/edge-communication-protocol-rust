@@ -9,20 +9,20 @@ use crate::{ElementType, Payload, StreamName, TrackName, TrackType, utils};
 
 type SchemaDirectory = HashMap<String, Schema>;
 
-pub const TRACK_TYPE_SCHEMA: &str = "TrackType";
-pub const TRACK_INFO_SCHEMA: &str = "TrackInfo";
-pub const UNIT_SCHEMA: &str = "Unit";
-pub const UNIT_ELEMENT_MESSAGE_SCHEMA: &str = "UnitElementMessage";
-pub const NOTIFY_MESSAGE_SCHEMA: &str = "NotifyMessage";
-pub const STREAM_TRACKS_REQUEST_SCHEMA: &str = "StreamTracksRequest";
-pub const STREAM_TRACKS_RESPONSE_SCHEMA: &str = "StreamTracksResponse";
-pub const STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA: &str = "StreamTrackUnitElementsRequest";
-pub const STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA: &str = "StreamTrackUnitElementsResponse";
-pub const STREAM_TRACK_UNITS_REQUEST_SCHEMA: &str = "StreamTrackUnitsRequest";
-pub const STREAM_TRACK_UNITS_RESPONSE_SCHEMA: &str = "StreamTrackUnitsResponse";
-pub const MESSAGE_ENVELOPE_SCHEMA: &str = "MessageEnvelope";
-pub const PING_REQUEST_RESPONSE_SCHEMA: &str = "PingRequestResponse";
-pub const UNIT_ELEMENT_VALUE_SCHEMA: &str = "UnitElementValue";
+pub const TRACK_TYPE_SCHEMA: &str = "insight.transport.TrackType.avsc";
+pub const TRACK_INFO_SCHEMA: &str = "insight.transport.TrackInfo.avsc";
+pub const UNIT_SCHEMA: &str = "insight.transport.Unit.avsc";
+pub const UNIT_ELEMENT_MESSAGE_SCHEMA: &str = "insight.transport.UnitElementMessage.avsc";
+pub const NOTIFY_MESSAGE_SCHEMA: &str = "insight.transport.NotifyMessage.avsc";
+pub const STREAM_TRACKS_REQUEST_SCHEMA: &str = "insight.transport.StreamTracksRequest.avsc";
+pub const STREAM_TRACKS_RESPONSE_SCHEMA: &str = "insight.transport.StreamTracksResponse.avsc";
+pub const STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA: &str = "insight.transport.StreamTrackUnitElementsRequest.avsc";
+pub const STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA: &str = "insight.transport.StreamTrackUnitElementsResponse.avsc";
+pub const STREAM_TRACK_UNITS_REQUEST_SCHEMA: &str = "insight.transport.StreamTrackUnitsRequest.avsc";
+pub const STREAM_TRACK_UNITS_RESPONSE_SCHEMA: &str = "insight.transport.StreamTrackUnitsResponse.avsc";
+pub const MESSAGE_ENVELOPE_SCHEMA: &str = "insight.transport.MessageEnvelope.avsc";
+pub const PING_REQUEST_RESPONSE_SCHEMA: &str = "insight.transport.PingRequestResponse.avsc";
+pub const UNIT_ELEMENT_VALUE_SCHEMA: &str = "insight.transport.UnitElementValue.avsc";
 
 pub struct MessageBuilder {
     pub directory: SchemaDirectory,
@@ -62,28 +62,36 @@ impl MessageBuilder {
             match s {
                 Schema::Enum {
                     name:
-                        Name {
-                            name,
-                            namespace: _,
-                            aliases: _,
-                        },
+                    Name {
+                        name,
+                        namespace,
+                        aliases: _,
+                    },
                     doc: _,
                     symbols: _,
                 } => {
-                    named_schemas.insert(name.clone(), s.clone());
+                    let mut full_name = namespace.clone().unwrap_or(String::from("insight.transport"));
+                    full_name.push_str(".");
+                    full_name.push_str(name);
+                    full_name.push_str(".avsc");
+                    named_schemas.insert(full_name, s.clone());
                 }
                 Schema::Record {
                     name:
-                        Name {
-                            name,
-                            namespace: _,
-                            aliases: _,
-                        },
+                    Name {
+                        name,
+                        namespace,
+                        aliases: _,
+                    },
                     doc: _,
                     fields: _,
                     lookup: _,
                 } => {
-                    named_schemas.insert(name.clone(), s.clone());
+                    let mut full_name = namespace.clone().unwrap_or(String::from("insight.transport"));
+                    full_name.push_str(".");
+                    full_name.push_str(name);
+                    full_name.push_str(".avsc");
+                    named_schemas.insert(full_name, s.clone());
                 }
                 _ => {
                     dbg!(s);
@@ -276,9 +284,8 @@ impl MessageBuilder {
         fn payload_to_avro(p: &Payload) -> Value {
             Value::Record(vec![
                 ("data".into(), Value::Bytes(p.data.clone())),
-                ("attributes".into(), Value::Map(p.attributes.iter().map(|x| (x.0.clone(), Value::String(x.1.clone()))).collect()))
+                ("attributes".into(), Value::Map(p.attributes.iter().map(|x| (x.0.clone(), Value::String(x.1.clone()))).collect())),
             ])
-
         }
 
         let values: Vec<Value> = values.iter().map(|x| payload_to_avro(x)).collect();
@@ -339,14 +346,14 @@ impl MessageBuilder {
             Ok(envelope) => match envelope {
                 Value::Record(fields) => match fields.as_slice() {
                     [(s_field_name, Value::Bytes(schema)), (p_field_name, Value::Bytes(payload))]
-                        if s_field_name == "schema" && p_field_name == "payload" =>
-                    {
-                        let schema = str::from_utf8(schema.as_slice());
-                        match schema {
-                            Ok(schema_name) => {
-                                let inner_schema = self.get_schema(schema_name);
+                    if s_field_name == "schema" && p_field_name == "payload" =>
+                        {
+                            let schema = str::from_utf8(schema.as_slice());
+                            match schema {
+                                Ok(schema_name) => {
+                                    let inner_schema = self.get_schema(schema_name);
 
-                                match inner_schema {
+                                    match inner_schema {
                                         Some(inner_schema) => {
                                             let inner = from_avro_datum(inner_schema,
                                                                         &mut payload.clone().as_slice(), None);
@@ -358,12 +365,12 @@ impl MessageBuilder {
                                         }
                                         _ => Err(format!("No valid schema found in schema catalog for the schema ({}) in serialized record", schema_name))
                                     }
+                                }
+                                _ => Err(String::from(
+                                    "Failed to parse schema name, not a valid UTF-8",
+                                )),
                             }
-                            _ => Err(String::from(
-                                "Failed to parse schema name, not a valid UTF-8",
-                            )),
                         }
-                    }
                     _ => Err(String::from(
                         "No outer AVRO record (MessageEnvelope) matched",
                     )),
