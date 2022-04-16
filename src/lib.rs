@@ -21,6 +21,7 @@ pub enum TrackType {
     NotImplemented,
 }
 
+
 impl Default for TrackType {
     fn default() -> Self {
         TrackType::Video
@@ -74,6 +75,8 @@ mod tests {
 
     use crate::message_builder::MessageBuilder;
     use crate::{pack_stream_name, pack_track_name, Payload, TrackType};
+    use crate::message_builder::services::ffprobe::*;
+    use crate::message_builder::media_store::*;
     use crate::protocol::Message;
 
     fn get_avro_path() -> String {
@@ -104,17 +107,17 @@ mod tests {
         )
             .unwrap();
 
-        let _m = mb.build_notify_message(
-            stream_name,
-            &TrackType::Meta,
-            track_name,
-            0,
-            saved_ms,
-            Some(10),
+        let _m = build_notify_message(&mb,
+                                      stream_name,
+                                      &TrackType::Meta,
+                                      track_name,
+                                      0,
+                                      saved_ms,
+                                      Some(10),
         );
 
         let m =
-            mb.build_notify_message(stream_name, &TrackType::Meta, track_name, 0, saved_ms, None);
+            build_notify_message(&mb, stream_name, &TrackType::Meta, track_name, 0, saved_ms, None);
         let value = mb.read_protocol_message(&m).unwrap();
         let pm = Message::from(&value.0, value.1);
         match pm {
@@ -136,15 +139,15 @@ mod tests {
         attributes.insert(String::from("key1"), String::from("value1"));
         attributes.insert(String::from("key2"), String::from("value2"));
 
-        let m = mb.build_unit_element_message(
-            stream_name,
-            &TrackType::Meta,
-            track_name,
-            0,
-            1,
-            &vec![0, 0],
-            &HashMap::default(),
-            false,
+        let m = build_unit_element_message(&mb,
+                                           stream_name,
+                                           &TrackType::Meta,
+                                           track_name,
+                                           0,
+                                           1,
+                                           &vec![0, 0],
+                                           &HashMap::default(),
+                                           false,
         );
 
         let value = mb.read_protocol_message(&m).unwrap();
@@ -163,7 +166,7 @@ mod tests {
         let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
         let stream_name = pack_stream_name(&stream_id);
         let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = mb.build_stream_tracks_request(0, String::from("/ab/c"), stream_name);
+        let m = build_stream_tracks_request(&mb, 0, String::from("/ab/c"), stream_name);
 
         let value = mb.read_protocol_message(&m).unwrap();
         let pm = Message::from(&value.0, value.1);
@@ -181,16 +184,16 @@ mod tests {
         let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
         let stream_name = pack_stream_name(&stream_id);
         let mb = MessageBuilder::new(get_avro_path().as_str());
-        let _m = mb.build_stream_tracks_response(0, stream_name, &vec![]);
+        let _m = build_stream_tracks_response(&mb, 0, stream_name, &vec![]);
         let track_name = pack_track_name(&String::from("test")).unwrap();
         let track_name2 = pack_track_name(&String::from("test2")).unwrap();
-        let m = mb.build_stream_tracks_response(
-            0,
-            stream_name,
-            &vec![
-                (track_name, TrackType::Meta),
-                (track_name2, TrackType::Video),
-            ],
+        let m = build_stream_tracks_response(&mb,
+                                             0,
+                                             stream_name,
+                                             &vec![
+                                                 (track_name, TrackType::Meta),
+                                                 (track_name2, TrackType::Video),
+                                             ],
         );
 
         let value = mb.read_protocol_message(&m).unwrap();
@@ -210,7 +213,8 @@ mod tests {
         let stream_name = pack_stream_name(&stream_id);
         let track_name = pack_track_name(&String::from("test")).unwrap();
         let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = mb.build_stream_track_unit_elements_request(
+        let m = build_stream_track_unit_elements_request(
+            &mb,
             0,
             String::from("/ab/c"),
             stream_name,
@@ -233,7 +237,7 @@ mod tests {
     #[test]
     fn test_ping_request() {
         let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = mb.build_ping_request_response(0, String::from("/ab/c"), false);
+        let m = build_ping_request_response(&mb, 0, String::from("/ab/c"), false);
         let value = mb.read_protocol_message(&m).unwrap();
         let pm = Message::from(&value.0, value.1);
         match pm {
@@ -248,7 +252,7 @@ mod tests {
     #[test]
     fn test_ping_response() {
         let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = mb.build_ping_request_response(0, String::from("/ab/c"), true);
+        let m = build_ping_request_response(&mb, 0, String::from("/ab/c"), true);
         let value = mb.read_protocol_message(&m).unwrap();
         let pm = Message::from(&value.0, value.1);
         match pm {
@@ -263,13 +267,13 @@ mod tests {
     #[test]
     fn test_services_ffprobe_request() {
         let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = mb.build_services_ffprobe_request(0, String::from("/ab/c"),
-                                                  String::from("abc"),
-                                                  HashMap::from([("a".to_string(), "b".to_string())]));
+        let m = build_services_ffprobe_request(&mb, 0, String::from("/ab/c"),
+                                               String::from("abc"),
+                                               HashMap::from([("a".to_string(), "b".to_string())]));
         let value = mb.read_protocol_message(&m).unwrap();
         let pm = Message::from(&value.0, value.1);
         match pm {
-            Message::ServicesFFprobeRequest { .. } => {
+            Message::ServicesFFProbeRequest { .. } => {
                 let new_m = pm.dump(&mb).unwrap();
                 assert_eq!(&m, &new_m);
             }
@@ -280,15 +284,16 @@ mod tests {
     #[test]
     fn test_services_ffprobe_response() {
         let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = mb.build_services_ffprobe_response(0,
-                                                  vec![
-                                                      HashMap::from([("a".to_string(), "b".to_string())]),
-                                                      HashMap::from([("x".to_string(), "y".to_string())])
-                                                  ]);
+        let m = build_services_ffprobe_response(&mb, 0,
+                                                &ServicesFFProbeResponseType::Accepted,
+                                                vec![
+                                                    HashMap::from([("a".to_string(), "b".to_string())]),
+                                                    HashMap::from([("x".to_string(), "y".to_string())]),
+                                                ]);
         let value = mb.read_protocol_message(&m).unwrap();
         let pm = Message::from(&value.0, value.1);
         match pm {
-            Message::ServicesFFprobeResponse { .. } => {
+            Message::ServicesFFProbeResponse { .. } => {
                 let new_m = pm.dump(&mb).unwrap();
                 assert_eq!(&m, &new_m);
             }
@@ -303,31 +308,31 @@ mod tests {
         let stream_name = pack_stream_name(&stream_id);
         let track_name = pack_track_name(&String::from("test")).unwrap();
         let mb = MessageBuilder::new(get_avro_path().as_str());
-        let _m = mb.build_stream_track_unit_elements_response(
-            0,
-            stream_name,
-            &TrackType::Meta,
-            track_name,
-            0,
-            &vec![],
+        let _m = build_stream_track_unit_elements_response(&mb,
+                                                           0,
+                                                           stream_name,
+                                                           &TrackType::Meta,
+                                                           track_name,
+                                                           0,
+                                                           &vec![],
         );
 
-        let m = mb.build_stream_track_unit_elements_response(
-            0,
-            stream_name,
-            &TrackType::Meta,
-            track_name,
-            0,
-            &vec![
-                Payload {
-                    data: vec![0, 1, 2],
-                    attributes: HashMap::default(),
-                },
-                Payload {
-                    data: vec![1, 2, 3],
-                    attributes: HashMap::default(),
-                },
-            ],
+        let m = build_stream_track_unit_elements_response(&mb,
+                                                             0,
+                                                             stream_name,
+                                                             &TrackType::Meta,
+                                                             track_name,
+                                                             0,
+                                                             &vec![
+                                                                 Payload {
+                                                                     data: vec![0, 1, 2],
+                                                                     attributes: HashMap::default(),
+                                                                 },
+                                                                 Payload {
+                                                                     data: vec![1, 2, 3],
+                                                                     attributes: HashMap::default(),
+                                                                 },
+                                                             ],
         );
 
         let value = mb.read_protocol_message(&m).unwrap();
@@ -347,14 +352,14 @@ mod tests {
         let stream_name = pack_stream_name(&stream_id);
         let track_name = pack_track_name(&String::from("test")).unwrap();
         let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = mb.build_stream_track_units_request(
-            0,
-            String::from("/ab/c"),
-            stream_name,
-            &TrackType::Meta,
-            track_name,
-            0,
-            100,
+        let m = build_stream_track_units_request(&mb,
+                                                    0,
+                                                    String::from("/ab/c"),
+                                                    stream_name,
+                                                    &TrackType::Meta,
+                                                    track_name,
+                                                    0,
+                                                    100,
         );
         let value = mb.read_protocol_message(&m).unwrap();
         let pm = Message::from(&value.0, value.1);
@@ -373,14 +378,14 @@ mod tests {
         let stream_name = pack_stream_name(&stream_id);
         let track_name = pack_track_name(&String::from("test")).unwrap();
         let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = mb.build_stream_track_units_response(
-            0,
-            stream_name,
-            &TrackType::Meta,
-            track_name,
-            0,
-            100,
-            &vec![0, 1, 2],
+        let m = build_stream_track_units_response(&mb,
+                                                     0,
+                                                     stream_name,
+                                                     &TrackType::Meta,
+                                                     track_name,
+                                                     0,
+                                                     100,
+                                                     &vec![0, 1, 2],
         );
 
         let value = mb.read_protocol_message(&m).unwrap();
