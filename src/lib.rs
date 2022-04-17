@@ -286,6 +286,7 @@ mod tests {
         let mb = MessageBuilder::new(get_avro_path().as_str());
         let m = build_services_ffprobe_response(&mb, 0,
                                                 &ServicesFFProbeResponseType::Accepted,
+                                                10,
                                                 vec![
                                                     HashMap::from([("a".to_string(), "b".to_string())]),
                                                     HashMap::from([("x".to_string(), "y".to_string())]),

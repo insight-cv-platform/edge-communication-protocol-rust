@@ -113,6 +113,7 @@ pub enum Message {
     ServicesFFProbeResponse {
         request_id: i64,
         response_type: ServicesFFProbeResponseType,
+        time_spent: i64,
         streams: Vec<HashMap<String, String>>,
     },
     ParsingError(String),
@@ -237,9 +238,10 @@ impl Message {
             Message::ServicesFFProbeResponse {
                 request_id,
                 response_type,
+                time_spent,
                 streams
             } => {
-                Ok(build_services_ffprobe_response(mb, *request_id, response_type, streams.clone()))
+                Ok(build_services_ffprobe_response(mb, *request_id, response_type, *time_spent, streams.clone()))
             }
 
             _ => Err(format!("Message {:?} can not be serialized", self))

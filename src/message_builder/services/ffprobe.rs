@@ -8,6 +8,7 @@ use crate::utils::{gen_hash_map, value_to_string};
 pub enum ServicesFFProbeResponseType {
     Accepted,
     Complete,
+    Error,
     NotImplemented,
 }
 
@@ -15,6 +16,7 @@ pub fn get_services_ffprobe_response_type_avro(response_type: &ServicesFFProbeRe
     match response_type {
         ServicesFFProbeResponseType::Accepted => Value::Enum(0, "ACCEPTED".into()),
         ServicesFFProbeResponseType::Complete => Value::Enum(1, "COMPLETE".into()),
+        ServicesFFProbeResponseType::Error => Value::Enum(2, "ERROR".into()),
         ServicesFFProbeResponseType::NotImplemented => panic!("Not supported ffprobe response type")
     }
 }
@@ -23,6 +25,7 @@ pub fn get_services_ffprobe_response_type_enum(response_type: &str) -> ServicesF
     match response_type {
         "ACCEPTED" => ServicesFFProbeResponseType::Accepted,
         "COMPLETE" => ServicesFFProbeResponseType::Complete,
+        "ERROR" => ServicesFFProbeResponseType::Error,
         _ => ServicesFFProbeResponseType::NotImplemented
     }
 }
@@ -36,10 +39,12 @@ pub fn build_services_ffprobe_request(mb: &MessageBuilder, request_id: i64, topi
     mb.pack_message_into_envelope(SERVICES_FFPROBE_REQUEST_SCHEMA, record)
 }
 
-pub fn build_services_ffprobe_response(mb: &MessageBuilder, request_id: i64, response_type: &ServicesFFProbeResponseType, streams: Vec<HashMap<String, String>>) -> Vec<u8> {
+pub fn build_services_ffprobe_response(mb: &MessageBuilder, request_id: i64, response_type: &ServicesFFProbeResponseType,
+                                       time_spent: i64, streams: Vec<HashMap<String, String>>) -> Vec<u8> {
     let mut record = mb.get_record(SERVICES_FFPROBE_RESPONSE_SCHEMA);
     record.put("request_id", Value::Long(request_id));
     record.put("response_type", get_services_ffprobe_response_type_avro(response_type));
+    record.put("time_spent", Value::Long(time_spent));
     let streams_array: Vec<Value> = streams.iter().map(|s| gen_hash_map(s)).collect();
     record.put("streams", Value::Array(streams_array));
     mb.pack_message_into_envelope(SERVICES_FFPROBE_RESPONSE_SCHEMA, record)
@@ -73,6 +78,7 @@ pub fn load_services_ffprobe_response(value: Value) -> Message {
             [
             (_, Value::Long(request_id)),
             (_, Value::Enum(_, response_type)),
+            (_, Value::Long(time_spent)),
             (_, Value::Array(streams)),
             ] => {
                 let mut response_streams: Vec<HashMap<String, String>> = Default::default();
@@ -90,6 +96,7 @@ pub fn load_services_ffprobe_response(value: Value) -> Message {
                 Message::ServicesFFProbeResponse {
                     request_id: *request_id,
                     response_type: get_services_ffprobe_response_type_enum(response_type.as_str()),
+                    time_spent: *time_spent,
                     streams: response_streams,
                 }
             }
