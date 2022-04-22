@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs;
 use avro_rs::types::Value;
 
@@ -23,4 +23,10 @@ pub fn value_to_string(v: &Value) -> Option<String> {
 pub fn fill_byte_array(buf: &mut [u8], from: &Vec<u8>) {
     let len = std::cmp::min(buf.len(), from.len());
     buf[..len].clone_from_slice(from.as_slice());
+}
+
+pub fn get_avro_path() -> String {
+    let mut base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    base_dir.push("API/avro/protocol");
+    return String::from(base_dir.to_str().unwrap());
 }

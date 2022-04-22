@@ -61,18 +61,6 @@ pub fn build_notify_message(
     mb.pack_message_into_envelope(NOTIFY_MESSAGE_SCHEMA, record)
 }
 
-pub fn build_ping_request_response(mb: &MessageBuilder, request_id: i64, topic: String, is_response: bool) -> Vec<u8> {
-    let mut record = mb.get_record(PING_REQUEST_RESPONSE_SCHEMA);
-    record.put("request_id", Value::Long(request_id));
-    record.put("topic", Value::String(topic));
-    if is_response {
-        record.put("type".into(), Value::Enum(1, "RESPONSE".into()));
-    } else {
-        record.put("type".into(), Value::Enum(0, "REQUEST".into()));
-    }
-    mb.pack_message_into_envelope(PING_REQUEST_RESPONSE_SCHEMA, record)
-}
-
 pub fn build_unit_element_message(
     mb: &MessageBuilder,
     stream_name: StreamName,
@@ -311,27 +299,6 @@ pub fn load_stream_tracks_request(value: Value) -> Message {
         _ => Message::ParsingError(String::from("Unable to match AVRO Record."))
     }
 }
-
-pub fn load_ping_request_response(value: Value) -> Message {
-    match value {
-        Value::Record(fields) => match fields.as_slice() {
-            [
-            (_, Value::Long(request_id)),
-            (_, Value::String(topic)),
-            (_, Value::Enum(_index, ping_m_type))
-            ] => {
-                Message::PingRequestResponse {
-                    request_id: request_id.clone(),
-                    topic: topic.clone(),
-                    mtype: if ping_m_type.as_str() == "REQUEST" { PingRequestResponseType::REQUEST } else { PingRequestResponseType::RESPONSE },
-                }
-            }
-            _ => Message::ParsingError(String::from("Unable to match AVRO Record to to PingRequestResponse"))
-        }
-        _ => Message::ParsingError(String::from("Unable to match AVRO Record."))
-    }
-}
-
 
 pub fn load_stream_tracks_response(value: Value) -> Message {
     match value {

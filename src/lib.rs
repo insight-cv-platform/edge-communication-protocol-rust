@@ -6,6 +6,7 @@ pub mod message_builder;
 pub mod protocol;
 
 mod utils;
+mod protocol2;
 
 pub const TRACK_NAME_MAX_LENGTH: usize = 16;
 pub const STREAM_NAME_MAX_LENGTH: usize = 16;
@@ -75,15 +76,9 @@ mod tests {
 
     use crate::message_builder::MessageBuilder;
     use crate::{pack_stream_name, pack_track_name, Payload, TrackType};
-    use crate::message_builder::services::ffprobe::*;
     use crate::message_builder::media_store::*;
     use crate::protocol::Message;
-
-    fn get_avro_path() -> String {
-        let mut base_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        base_dir.push("API/avro/protocol");
-        return String::from(base_dir.to_str().unwrap());
-    }
+    use crate::utils::get_avro_path;
 
     #[test]
     fn test_load_schemas() {
@@ -233,75 +228,6 @@ mod tests {
             _ => panic!("Unexpected ProtocolMessage kind"),
         }
     }
-
-    #[test]
-    fn test_ping_request() {
-        let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = build_ping_request_response(&mb, 0, String::from("/ab/c"), false);
-        let value = mb.read_protocol_message(&m).unwrap();
-        let pm = Message::from(&value.0, value.1);
-        match pm {
-            Message::PingRequestResponse { .. } => {
-                let new_m = pm.dump(&mb).unwrap();
-                assert_eq!(&m, &new_m);
-            }
-            _ => panic!("Unexpected ProtocolMessage kind"),
-        }
-    }
-
-    #[test]
-    fn test_ping_response() {
-        let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = build_ping_request_response(&mb, 0, String::from("/ab/c"), true);
-        let value = mb.read_protocol_message(&m).unwrap();
-        let pm = Message::from(&value.0, value.1);
-        match pm {
-            Message::PingRequestResponse { .. } => {
-                let new_m = pm.dump(&mb).unwrap();
-                assert_eq!(&m, &new_m);
-            }
-            _ => panic!("Unexpected ProtocolMessage kind"),
-        }
-    }
-
-    #[test]
-    fn test_services_ffprobe_request() {
-        let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = build_services_ffprobe_request(&mb, 0, String::from("/ab/c"),
-                                               String::from("abc"),
-                                               HashMap::from([("a".to_string(), "b".to_string())]));
-        let value = mb.read_protocol_message(&m).unwrap();
-        let pm = Message::from(&value.0, value.1);
-        match pm {
-            Message::ServicesFFProbeRequest { .. } => {
-                let new_m = pm.dump(&mb).unwrap();
-                assert_eq!(&m, &new_m);
-            }
-            _ => panic!("Unexpected ProtocolMessage kind"),
-        }
-    }
-
-    #[test]
-    fn test_services_ffprobe_response() {
-        let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = build_services_ffprobe_response(&mb, 0,
-                                                &ServicesFFProbeResponseType::Accepted,
-                                                10,
-                                                vec![
-                                                    HashMap::from([("a".to_string(), "b".to_string())]),
-                                                    HashMap::from([("x".to_string(), "y".to_string())]),
-                                                ]);
-        let value = mb.read_protocol_message(&m).unwrap();
-        let pm = Message::from(&value.0, value.1);
-        match pm {
-            Message::ServicesFFProbeResponse { .. } => {
-                let new_m = pm.dump(&mb).unwrap();
-                assert_eq!(&m, &new_m);
-            }
-            _ => panic!("Unexpected ProtocolMessage kind"),
-        }
-    }
-
 
     #[test]
     fn test_stream_track_unit_element_response() {

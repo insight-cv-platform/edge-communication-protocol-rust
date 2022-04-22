@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 use std::path::Path;
 use std::str;
+use pyo3::prelude::*;
 
 use avro_rs::{from_avro_datum, Schema, to_avro_datum};
 use avro_rs::schema::Name;
 use avro_rs::types::{Record, Value};
+use log::warn;
 
 use crate::utils;
-
-pub mod media_store;
 
 type SchemaDirectory = HashMap<String, Schema>;
 
@@ -34,12 +34,11 @@ pub const SERVICE_FFPROBE_SCHEMAS: &str = "services/ffprobe";
 pub const SERVICES_FFPROBE_REQUEST_SCHEMA: &str = "insight.ffprobe.Request.avsc";
 pub const SERVICES_FFPROBE_RESPONSE_SCHEMA: &str = "insight.ffprobe.Response.avsc";
 
-
-pub struct MessageBuilder {
+pub struct BuilderImpl {
     pub directory: SchemaDirectory,
 }
 
-impl MessageBuilder {
+impl BuilderImpl {
     pub fn schema_files() -> Vec<(&'static str, &'static str)> {
         vec![
             (STORAGE_SCHEMAS, TRACK_TYPE_SCHEMA),
@@ -61,7 +60,7 @@ impl MessageBuilder {
         ]
     }
 
-    pub fn new(path_prefix: &str) -> MessageBuilder {
+    pub fn new(path_prefix: &str) -> BuilderImpl {
         let schemas_raw: Vec<String> = Self::schema_files()
             .iter()
             .map(|schema| utils::load_file(Path::new(path_prefix).join(Path::new(schema.0)).as_path(), schema.1))
@@ -112,7 +111,7 @@ impl MessageBuilder {
             };
         }
 
-        MessageBuilder {
+        BuilderImpl {
             directory: named_schemas,
         }
     }
@@ -128,7 +127,7 @@ impl MessageBuilder {
         record
     }
 
-    fn pack_message_into_envelope(&self, schema_name: &str, payload: Record) -> Vec<u8> {
+    fn pack_message_into_envelope(&self, schema_name: &str, payload: Value) -> Vec<u8> {
         let mut envelope = self.get_record(MESSAGE_ENVELOPE_SCHEMA);
         let inner = to_avro_datum(self.get_schema(schema_name).unwrap(), payload).unwrap();
         envelope.put("schema", Value::Bytes(schema_name.into()));
@@ -180,5 +179,57 @@ impl MessageBuilder {
     }
 }
 
+#[pyclass]
+pub struct Builder {
+    builder: BuilderImpl,
+}
 
+#[derive(Clone)]
+#[pyclass]
+pub struct ProtocolMessage {
+    pub schema: String,
+    pub object: Value,
+}
 
+#[pymethods]
+impl Builder {
+    #[new]
+    pub fn new(path_prefix: &str) -> Builder {
+        Builder {
+            builder: BuilderImpl::new(path_prefix)
+        }
+    }
+
+    pub fn load(&self, obj: Vec<u8>) -> Option<ProtocolMessage> {
+        match self.builder.read_protocol_message(&obj) {
+            Ok((schema, object)) => Some(ProtocolMessage { schema, object }),
+            Err(m) => {
+                warn!("Unable to decode the message from the envelope. Error is {}", m);
+                None
+            }
+        }
+    }
+
+    pub fn save(&self, message: ProtocolMessage) -> Vec<u8> {
+        self.builder.pack_message_into_envelope(message.schema.as_str(), message.object)
+    }
+}
+
+impl Builder {
+    pub fn get_record(&self, schema_name: &str) -> Record {
+        let record = Record::new(self.builder.get_schema(schema_name).unwrap()).unwrap();
+        record
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::protocol2::avro::{Builder, UNIT_ELEMENT_MESSAGE_SCHEMA};
+    use crate::utils::get_avro_path;
+
+    #[test]
+    fn test_load_schemas() {
+        let mb = Builder::new(get_avro_path().as_str());
+        let r = mb.get_record(UNIT_ELEMENT_MESSAGE_SCHEMA);
+    }
+}

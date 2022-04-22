@@ -3,14 +3,23 @@ name = "protocol"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "protocol"
+crate-type = ["cdylib"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies.avro-rs]
 version = "0.13.0"
 features = ["snappy"]
 
+[dependencies.pyo3]
+version = "0.16"
+features = ["extension-module"]
+
 [dependencies]
 uuid = "0.8"
 bincode = "1.3"
 serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
 
