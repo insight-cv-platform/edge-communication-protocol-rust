@@ -87,7 +87,7 @@ impl ToProtocolMessage for PingRequestResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::protocol2::avro::{Builder, PING_REQUEST_RESPONSE_SCHEMA};
+    use crate::protocol2::avro::Builder;
     use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
     use crate::protocol2::objects::services::ping::{PingRequestResponse, PingRequestResponseType};
     use crate::utils::get_avro_path;
@@ -97,7 +97,7 @@ mod tests {
         let req = PingRequestResponse::new(
             0,
             String::from("test"),
-            PingRequestResponseType::Request);
+            mt);
 
         let req_envelope_opt = req.save(&mb);
         assert!(req_envelope_opt.is_some());

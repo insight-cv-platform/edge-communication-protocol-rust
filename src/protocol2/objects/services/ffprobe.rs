@@ -197,7 +197,7 @@ impl ToProtocolMessage for ServicesFFProbeResponse {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use crate::protocol2::avro::{Builder, UNIT_ELEMENT_MESSAGE_SCHEMA};
+    use crate::protocol2::avro::Builder;
     use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
     use crate::protocol2::objects::services::ffprobe::{ServicesFFProbeRequest, ServicesFFProbeResponse, ServicesFFProbeResponseType};
     use crate::utils::get_avro_path;

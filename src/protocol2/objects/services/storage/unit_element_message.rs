@@ -105,7 +105,7 @@ mod tests {
     use crate::protocol2::avro::Builder;
     use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
     use crate::protocol2::objects::services::storage::unit_element_message::UnitElementMessage;
-    use crate::protocol2::primitives::{pack_stream_name, pack_track_name, TrackType, Unit};
+    use crate::protocol2::primitives::{pack_stream_name, pack_track_name, Unit};
     use crate::utils::get_avro_path;
 
     #[test]
@@ -113,13 +113,13 @@ mod tests {
         let mb = Builder::new(get_avro_path().as_str());
 
         let track_name = pack_track_name(&String::from("test")).unwrap();
-        let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
-        let stream_name = pack_stream_name(&stream_id);
+        let stream_uuid = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
+        let stream_name = pack_stream_name(&stream_uuid);
 
         let req = UnitElementMessage::new(
-            Unit::new(stream_name.to_vec(), track_name.to_vec(), String::from("VIDEO"), 0),
-            0,
-            vec![0, 0],
+            Unit::new(stream_name.to_vec(), track_name.to_vec(), String::from("VIDEO"), 3),
+            2,
+            vec![0, 1],
             HashMap::from([("a".into(), "b".into()), ("c".into(), "d".into())]),
             true
         );

@@ -230,6 +230,6 @@ mod tests {
     #[test]
     fn test_load_schemas() {
         let mb = Builder::new(get_avro_path().as_str());
-        let r = mb.get_record(UNIT_ELEMENT_MESSAGE_SCHEMA);
+        let _r = mb.get_record(UNIT_ELEMENT_MESSAGE_SCHEMA);
     }
 }

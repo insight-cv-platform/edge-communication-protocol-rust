@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use avro_rs::types::Value;
 
 use crate::{ElementType, Payload, StreamName, TrackInfo, TrackName, TrackType};
@@ -42,31 +40,8 @@ pub enum NotifyType {
     NotImplemented,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum PingRequestResponseType {
-    REQUEST,
-    RESPONSE,
-}
-
 #[derive(Debug)]
 pub enum Message {
-    StreamTracksResponse {
-        request_id: i64,
-        stream_name: StreamName,
-        tracks: Vec<TrackInfo>,
-    },
-    StreamTracksRequest {
-        request_id: i64,
-        topic: String,
-        stream_name: StreamName,
-    },
-    UnitElementMessage {
-        stream_unit: Unit,
-        element: ElementType,
-        value: Vec<u8>,
-        attributes: HashMap<String, String>,
-        last: bool,
-    },
     NotifyMessage {
         stream_unit: Unit,
         saved_ms: u64,
@@ -105,10 +80,7 @@ impl Message {
 
     pub fn from(kind: &String, value: Value) -> Message {
         match kind.as_str() {
-            UNIT_ELEMENT_MESSAGE_SCHEMA => load_unit_element_message(value),
             NOTIFY_MESSAGE_SCHEMA => load_notify_message(value),
-            STREAM_TRACKS_REQUEST_SCHEMA => load_stream_tracks_request(value),
-            STREAM_TRACKS_RESPONSE_SCHEMA => load_stream_tracks_response(value),
             STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA => load_stream_track_unit_elements_request(value),
             STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA => load_stream_track_unit_elements_response(value),
             STREAM_TRACK_UNITS_REQUEST_SCHEMA => load_stream_track_units_request(value),
@@ -119,13 +91,6 @@ impl Message {
 
     pub fn dump(&self, mb: &MessageBuilder) -> Result<Vec<u8>, String> {
         match self {
-            Message::UnitElementMessage {
-                stream_unit: Unit { stream_name, track_name, track_type, unit },
-                element,
-                value,
-                attributes,
-                last
-            } => Ok(build_unit_element_message(&mb, *stream_name, track_type, *track_name, *unit, *element, value, attributes, *last)),
 
             Message::NotifyMessage {
                 stream_unit: Unit { stream_name, track_name, track_type, unit },
@@ -139,15 +104,6 @@ impl Message {
                 };
                 Ok(build_notify_message(mb, *stream_name, track_type, *track_name, *unit, *saved_ms, last))
             }
-
-            Message::StreamTracksRequest {
-                request_id, topic, stream_name
-            } => Ok(build_stream_tracks_request(mb, *request_id, topic.clone(), *stream_name)),
-
-            Message::StreamTracksResponse {
-                request_id, stream_name, tracks
-            } => Ok(build_stream_tracks_response(&mb, *request_id, *stream_name,
-                                                    &tracks.iter().map(|x| (x.track_name, x.track_type)).collect())),
 
             Message::StreamTrackUnitElementsRequest {
                 request_id,

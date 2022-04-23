@@ -69,7 +69,6 @@ pub struct TrackInfo {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use uuid::Uuid;
@@ -117,84 +116,6 @@ mod tests {
         let pm = Message::from(&value.0, value.1);
         match pm {
             Message::NotifyMessage { .. } => {
-                let new_m = pm.dump(&mb).unwrap();
-                assert_eq!(&m, &new_m);
-            }
-            _ => panic!("Unexpected ProtocolMessage kind"),
-        }
-    }
-
-    #[test]
-    fn test_unit_element_message() {
-        let track_name = pack_track_name(&String::from("test")).unwrap();
-        let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
-        let stream_name = pack_stream_name(&stream_id);
-        let mb = MessageBuilder::new(get_avro_path().as_str());
-        let mut attributes: HashMap<String, String> = HashMap::default();
-        attributes.insert(String::from("key1"), String::from("value1"));
-        attributes.insert(String::from("key2"), String::from("value2"));
-
-        let m = build_unit_element_message(&mb,
-                                           stream_name,
-                                           &TrackType::Meta,
-                                           track_name,
-                                           0,
-                                           1,
-                                           &vec![0, 0],
-                                           &HashMap::default(),
-                                           false,
-        );
-
-        let value = mb.read_protocol_message(&m).unwrap();
-        let pm = Message::from(&value.0, value.1);
-        match pm {
-            Message::UnitElementMessage { .. } => {
-                let new_m = pm.dump(&mb).unwrap();
-                assert_eq!(&m, &new_m);
-            }
-            _ => panic!("Unexpected ProtocolMessage kind"),
-        }
-    }
-
-    #[test]
-    fn test_stream_tracks_request() {
-        let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
-        let stream_name = pack_stream_name(&stream_id);
-        let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = build_stream_tracks_request(&mb, 0, String::from("/ab/c"), stream_name);
-
-        let value = mb.read_protocol_message(&m).unwrap();
-        let pm = Message::from(&value.0, value.1);
-        match pm {
-            Message::StreamTracksRequest { .. } => {
-                let new_m = pm.dump(&mb).unwrap();
-                assert_eq!(&m, &new_m);
-            }
-            _ => panic!("Unexpected ProtocolMessage kind"),
-        }
-    }
-
-    #[test]
-    fn test_stream_tracks_response() {
-        let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
-        let stream_name = pack_stream_name(&stream_id);
-        let mb = MessageBuilder::new(get_avro_path().as_str());
-        let _m = build_stream_tracks_response(&mb, 0, stream_name, &vec![]);
-        let track_name = pack_track_name(&String::from("test")).unwrap();
-        let track_name2 = pack_track_name(&String::from("test2")).unwrap();
-        let m = build_stream_tracks_response(&mb,
-                                             0,
-                                             stream_name,
-                                             &vec![
-                                                 (track_name, TrackType::Meta),
-                                                 (track_name2, TrackType::Video),
-                                             ],
-        );
-
-        let value = mb.read_protocol_message(&m).unwrap();
-        let pm = Message::from(&value.0, value.1);
-        match pm {
-            Message::StreamTracksResponse { .. } => {
                 let new_m = pm.dump(&mb).unwrap();
                 assert_eq!(&m, &new_m);
             }
