@@ -1,6 +1,6 @@
 use avro_rs::types::Value;
 
-use crate::{ElementType, Payload, StreamName, TrackName, TrackType};
+use crate::{StreamName, TrackName, TrackType};
 use crate::message_builder::*;
 use crate::message_builder::media_store::*;
 use crate::utils::fill_byte_array;
@@ -36,17 +36,6 @@ impl Unit {
 
 #[derive(Debug)]
 pub enum Message {
-    StreamTrackUnitElementsRequest {
-        request_id: i64,
-        topic: String,
-        stream_unit: Unit,
-        max_element: ElementType,
-    },
-    StreamTrackUnitElementsResponse {
-        request_id: i64,
-        stream_unit: Unit,
-        values: Vec<Payload>,
-    },
     StreamTrackUnitsRequest {
         request_id: i64,
         topic: String,
@@ -69,8 +58,6 @@ impl Message {
 
     pub fn from(kind: &String, value: Value) -> Message {
         match kind.as_str() {
-            STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA => load_stream_track_unit_elements_request(value),
-            STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA => load_stream_track_unit_elements_response(value),
             STREAM_TRACK_UNITS_REQUEST_SCHEMA => load_stream_track_units_request(value),
             STREAM_TRACK_UNITS_RESPONSE_SCHEMA => load_stream_track_units_response(value),
             _ => Message::ParsingError(kind.clone())
@@ -79,21 +66,6 @@ impl Message {
 
     pub fn dump(&self, mb: &MessageBuilder) -> Result<Vec<u8>, String> {
         match self {
-
-
-            Message::StreamTrackUnitElementsRequest {
-                request_id,
-                topic,
-                stream_unit: Unit { stream_name, track_name, track_type, unit },
-                max_element
-            } => Ok(build_stream_track_unit_elements_request(&mb, *request_id, topic.clone(), *stream_name,
-                                                                track_type, *track_name, *unit, *max_element)),
-
-            Message::StreamTrackUnitElementsResponse {
-                request_id,
-                stream_unit: Unit { stream_name, track_name, track_type, unit },
-                values
-            } => Ok(build_stream_track_unit_elements_response(&mb, *request_id, *stream_name, track_type, *track_name, *unit, values)),
 
             Message::StreamTrackUnitsRequest {
                 request_id,

@@ -1,11 +1,9 @@
 use avro_rs::types::Value;
 
-use crate::{ElementType, Payload, StreamName, TrackName, TrackType};
-use crate::message_builder::{MessageBuilder, STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA,
-                             STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA, STREAM_TRACK_UNITS_REQUEST_SCHEMA,
+use crate::{StreamName, TrackName, TrackType};
+use crate::message_builder::{MessageBuilder, STREAM_TRACK_UNITS_REQUEST_SCHEMA,
                              STREAM_TRACK_UNITS_RESPONSE_SCHEMA};
 use crate::protocol::{Message, Unit};
-use crate::utils::{value_to_string};
 
 
 
@@ -32,54 +30,6 @@ fn get_stream_unit(
 }
 
 
-pub fn build_stream_track_unit_elements_request(
-    mb: &MessageBuilder,
-    request_id: i64,
-    topic: String,
-    stream_name: StreamName,
-    track_type: &TrackType,
-    track_name: TrackName,
-    unit: i64,
-    max_element: ElementType,
-) -> Vec<u8> {
-    let mut record = mb.get_record(STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA);
-    record.put("request_id", Value::Long(request_id));
-    record.put("topic", Value::String(topic));
-    record.put(
-        "stream_unit",
-        get_stream_unit(stream_name, track_type, track_name, unit),
-    );
-    record.put("max_element", Value::Long(max_element.into()));
-    mb.pack_message_into_envelope(STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA, record)
-}
-
-pub fn build_stream_track_unit_elements_response(
-    mb: &MessageBuilder,
-    request_id: i64,
-    stream_name: StreamName,
-    track_type: &TrackType,
-    track_name: TrackName,
-    unit: i64,
-    values: &Vec<Payload>,
-) -> Vec<u8> {
-    let mut record = mb.get_record(STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA);
-    record.put("request_id", Value::Long(request_id));
-    record.put(
-        "stream_unit",
-        get_stream_unit(stream_name, track_type, track_name, unit),
-    );
-
-    fn payload_to_avro(p: &Payload) -> Value {
-        Value::Record(vec![
-            ("data".into(), Value::Bytes(p.data.clone())),
-            ("attributes".into(), Value::Map(p.attributes.iter().map(|x| (x.0.clone(), Value::String(x.1.clone()))).collect())),
-        ])
-    }
-
-    let values: Vec<Value> = values.iter().map(|x| payload_to_avro(x)).collect();
-    record.put("values", Value::Array(values));
-    mb.pack_message_into_envelope(STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA, record)
-}
 
 pub fn build_stream_track_units_request(
     mb: &MessageBuilder,
@@ -128,90 +78,6 @@ pub fn build_stream_track_units_response(
 
 
 
-pub fn load_stream_track_unit_elements_request(value: Value) -> Message {
-    match value {
-        Value::Record(fields) => match fields.as_slice() {
-            [
-            (_, Value::Long(request_id)),
-            (_, Value::String(topic)),
-            (_, Value::Record(stream_unit_fields)),
-            (_, Value::Long(max_element)),
-            ] => match stream_unit_fields.as_slice() {
-                [
-                (_, Value::Bytes(stream_name)),
-                (_, Value::Bytes(track_name)),
-                (_, Value::Enum(_index, track_type)),
-                (_, Value::Long(unit))
-                ] => {
-                    Message::StreamTrackUnitElementsRequest {
-                        request_id: request_id.clone(),
-                        topic: topic.clone(),
-                        stream_unit: Unit::new(stream_name, track_name, track_type, unit.clone()),
-                        max_element: max_element.clone() as i16,
-                    }
-                }
-                _ => Message::ParsingError(String::from("Unable to match AVRO Record to Unit"))
-            }
-            _ => Message::ParsingError(String::from("Unable to match AVRO Record to to StreamTrackUnitElementsRequest"))
-        }
-        _ => Message::ParsingError(String::from("Unable to match AVRO Record."))
-    }
-}
-
-pub fn load_stream_track_unit_elements_response(value: Value) -> Message {
-    match value {
-        Value::Record(fields) => match fields.as_slice() {
-            [
-            (_, Value::Long(request_id)),
-            (_, Value::Record(stream_unit_fields)),
-            (_, Value::Array(values)),
-            ] => match stream_unit_fields.as_slice() {
-                [
-                (_, Value::Bytes(stream_name)),
-                (_, Value::Bytes(track_name)),
-                (_, Value::Enum(_index, track_type)),
-                (_, Value::Long(unit))
-                ] => {
-                    fn to_payload(v: &Value) -> Option<Payload> {
-                        match v {
-                            Value::Record(fields) => match fields.as_slice() {
-                                [
-                                (_, Value::Bytes(data)),
-                                (_, Value::Map(attributes))
-                                ] => {
-                                    Some(Payload {
-                                        data: data.clone(),
-                                        attributes: attributes.iter().map(|x| (x.0.clone(), value_to_string(x.1).or(Some(String::from(""))).unwrap())).collect(),
-                                    })
-                                }
-                                _ => None
-                            }
-                            _ => None
-                        }
-                    }
-
-                    let values_parsed: Vec<_> = values.iter()
-                        .map(|x| to_payload(x))
-                        .filter(|x| x.is_some())
-                        .map(|x| x.unwrap()).collect();
-
-                    if values_parsed.len() < values.len() {
-                        Message::ParsingError(String::from("Not all payload values were parsed correctly"))
-                    } else {
-                        Message::StreamTrackUnitElementsResponse {
-                            request_id: request_id.clone(),
-                            stream_unit: Unit::new(stream_name, track_name, track_type, unit.clone()),
-                            values: values_parsed,
-                        }
-                    }
-                }
-                _ => Message::ParsingError(String::from("Unable to match AVRO Record to Unit"))
-            }
-            _ => Message::ParsingError(String::from("Unable to match AVRO Record to to StreamTrackUnitElementsRequest"))
-        }
-        _ => Message::ParsingError(String::from("Unable to match AVRO Record."))
-    }
-}
 
 pub fn load_stream_track_units_request(value: Value) -> Message {
     match value {

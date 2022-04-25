@@ -68,86 +68,14 @@ pub struct TrackInfo {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
 
     use uuid::Uuid;
 
     use crate::message_builder::MessageBuilder;
-    use crate::{pack_stream_name, pack_track_name, Payload, TrackType};
+    use crate::{pack_stream_name, pack_track_name, TrackType};
     use crate::message_builder::media_store::*;
     use crate::protocol::Message;
     use crate::utils::get_avro_path;
-
-    #[test]
-    fn test_stream_track_unit_element_request() {
-        let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
-        let stream_name = pack_stream_name(&stream_id);
-        let track_name = pack_track_name(&String::from("test")).unwrap();
-        let mb = MessageBuilder::new(get_avro_path().as_str());
-        let m = build_stream_track_unit_elements_request(
-            &mb,
-            0,
-            String::from("/ab/c"),
-            stream_name,
-            &TrackType::Meta,
-            track_name,
-            0,
-            100,
-        );
-        let value = mb.read_protocol_message(&m).unwrap();
-        let pm = Message::from(&value.0, value.1);
-        match pm {
-            Message::StreamTrackUnitElementsRequest { .. } => {
-                let new_m = pm.dump(&mb).unwrap();
-                assert_eq!(&m, &new_m);
-            }
-            _ => panic!("Unexpected ProtocolMessage kind"),
-        }
-    }
-
-    #[test]
-    fn test_stream_track_unit_element_response() {
-        let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
-        let stream_name = pack_stream_name(&stream_id);
-        let track_name = pack_track_name(&String::from("test")).unwrap();
-        let mb = MessageBuilder::new(get_avro_path().as_str());
-        let _m = build_stream_track_unit_elements_response(&mb,
-                                                           0,
-                                                           stream_name,
-                                                           &TrackType::Meta,
-                                                           track_name,
-                                                           0,
-                                                           &vec![],
-        );
-
-        let m = build_stream_track_unit_elements_response(&mb,
-                                                             0,
-                                                             stream_name,
-                                                             &TrackType::Meta,
-                                                             track_name,
-                                                             0,
-                                                             &vec![
-                                                                 Payload {
-                                                                     data: vec![0, 1, 2],
-                                                                     attributes: HashMap::default(),
-                                                                 },
-                                                                 Payload {
-                                                                     data: vec![1, 2, 3],
-                                                                     attributes: HashMap::default(),
-                                                                 },
-                                                             ],
-        );
-
-        let value = mb.read_protocol_message(&m).unwrap();
-        let pm = Message::from(&value.0, value.1);
-        match pm {
-            Message::StreamTrackUnitElementsResponse { .. } => {
-                let new_m = pm.dump(&mb).unwrap();
-                assert_eq!(&m, &new_m);
-            }
-            _ => panic!("Unexpected ProtocolMessage kind"),
-        }
-    }
 
     #[test]
     fn test_stream_track_units_request() {
