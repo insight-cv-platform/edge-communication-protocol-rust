@@ -17,9 +17,9 @@ fn get_track_type_enum(track_type: &TrackType) -> Value {
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
 pub struct StreamTracksResponse {
-    request_id: i64,
-    stream_name: StreamName,
-    tracks: Vec<TrackInfo>,
+    pub request_id: i64,
+    pub stream_name: StreamName,
+    pub tracks: Vec<TrackInfo>,
 }
 
 #[pymethods]
@@ -124,9 +124,9 @@ impl FromProtocolMessage for StreamTracksResponse {
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
 pub struct StreamTracksRequest {
-    request_id: i64,
-    topic: String,
-    stream_name: StreamName,
+    pub request_id: i64,
+    pub topic: String,
+    pub stream_name: StreamName,
 }
 
 #[pymethods]

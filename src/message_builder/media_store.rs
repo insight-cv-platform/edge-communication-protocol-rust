@@ -1,13 +1,11 @@
 use avro_rs::types::Value;
 
 use crate::{ElementType, Payload, StreamName, TrackName, TrackType};
-use crate::{STREAM_NAME_MAX_LENGTH, TRACK_NAME_MAX_LENGTH, TrackInfo};
-use crate::message_builder::{MessageBuilder, NOTIFY_MESSAGE_SCHEMA, STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA,
+use crate::message_builder::{MessageBuilder, STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA,
                              STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA, STREAM_TRACK_UNITS_REQUEST_SCHEMA,
-                             STREAM_TRACK_UNITS_RESPONSE_SCHEMA, STREAM_TRACKS_REQUEST_SCHEMA, STREAM_TRACKS_RESPONSE_SCHEMA,
-                             TRACK_INFO_SCHEMA};
-use crate::protocol::{Message, NotifyType, track_type_literal_to_track_type, Unit};
-use crate::utils::{fill_byte_array, value_to_string};
+                             STREAM_TRACK_UNITS_RESPONSE_SCHEMA};
+use crate::protocol::{Message, Unit};
+use crate::utils::{value_to_string};
 
 
 
@@ -33,34 +31,6 @@ fn get_stream_unit(
     ])
 }
 
-pub fn build_notify_message(
-    mb: &MessageBuilder,
-    stream_name: StreamName,
-    track_type: &TrackType,
-    track_name: TrackName,
-    unit: i64,
-    saved_ms: u64,
-    last_element: Option<ElementType>,
-) -> Vec<u8> {
-    let mut record = mb.get_record(NOTIFY_MESSAGE_SCHEMA);
-    record.put(
-        "stream_unit",
-        get_stream_unit(stream_name, track_type, track_name, unit),
-    );
-    record.put("saved_ms", Value::Long(saved_ms as i64));
-    match last_element {
-        Some(elt) => {
-            record.put("notify_type".into(), Value::Enum(0, "READY".into()));
-            record.put("last_element".into(), Value::Int(elt.into()));
-        }
-        None => {
-            record.put("notify_type".into(), Value::Enum(1, "NEW".into()));
-            record.put("last_element".into(), Value::Int(-1));
-        }
-    }
-
-    mb.pack_message_into_envelope(NOTIFY_MESSAGE_SCHEMA, record)
-}
 
 pub fn build_stream_track_unit_elements_request(
     mb: &MessageBuilder,
@@ -156,38 +126,6 @@ pub fn build_stream_track_units_response(
     mb.pack_message_into_envelope(STREAM_TRACK_UNITS_RESPONSE_SCHEMA, record)
 }
 
-pub fn load_notify_message(value: Value) -> Message {
-    match value {
-        Value::Record(fields) => match fields.as_slice() {
-            [
-            (_, Value::Record(stream_unit_fields)),
-            (_, Value::Int(last_element)),
-            (_, Value::Long(saved_ms)),
-            (_, Value::Enum(_index, notify_type)),
-            ] => match stream_unit_fields.as_slice() {
-                [
-                (_, Value::Bytes(stream_name)),
-                (_, Value::Bytes(track_name)),
-                (_, Value::Enum(_index, track_type)),
-                (_, Value::Long(unit))
-                ] => {
-                    Message::NotifyMessage {
-                        stream_unit: Unit::new(stream_name, track_name, track_type, unit.clone()),
-                        saved_ms: *saved_ms as u64,
-                        notify_type: match notify_type.as_str() {
-                            "READY" => NotifyType::Ready(last_element.clone() as i16),
-                            "NEW" => NotifyType::New,
-                            _ => NotifyType::NotImplemented
-                        },
-                    }
-                }
-                _ => Message::ParsingError(String::from("Unable to match AVRO Record to Unit"))
-            }
-            _ => Message::ParsingError(String::from("Unable to match AVRO Record to to NotifyMessage"))
-        }
-        _ => Message::ParsingError(String::from("Unable to match AVRO Record."))
-    }
-}
 
 
 pub fn load_stream_track_unit_elements_request(value: Value) -> Message {

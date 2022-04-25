@@ -140,16 +140,17 @@ impl Unit {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum NotifyTypeImpl {
     Ready(ElementType),
     New,
+    NotImplemented
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[pyclass]
 pub struct NotifyType {
-    obj: NotifyTypeImpl,
+    pub obj: NotifyTypeImpl,
 }
 
 #[pymethods]
@@ -167,6 +168,7 @@ impl NotifyType {
             obj: NotifyTypeImpl::New
         }
     }
+
 }
 
 

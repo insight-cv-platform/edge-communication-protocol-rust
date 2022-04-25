@@ -1,6 +1,6 @@
 use avro_rs::types::Value;
 
-use crate::{ElementType, Payload, StreamName, TrackInfo, TrackName, TrackType};
+use crate::{ElementType, Payload, StreamName, TrackName, TrackType};
 use crate::message_builder::*;
 use crate::message_builder::media_store::*;
 use crate::utils::fill_byte_array;
@@ -33,20 +33,9 @@ impl Unit {
     }
 }
 
-#[derive(Debug)]
-pub enum NotifyType {
-    Ready(ElementType),
-    New,
-    NotImplemented,
-}
 
 #[derive(Debug)]
 pub enum Message {
-    NotifyMessage {
-        stream_unit: Unit,
-        saved_ms: u64,
-        notify_type: NotifyType,
-    },
     StreamTrackUnitElementsRequest {
         request_id: i64,
         topic: String,
@@ -80,7 +69,6 @@ impl Message {
 
     pub fn from(kind: &String, value: Value) -> Message {
         match kind.as_str() {
-            NOTIFY_MESSAGE_SCHEMA => load_notify_message(value),
             STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA => load_stream_track_unit_elements_request(value),
             STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA => load_stream_track_unit_elements_response(value),
             STREAM_TRACK_UNITS_REQUEST_SCHEMA => load_stream_track_units_request(value),
@@ -92,18 +80,6 @@ impl Message {
     pub fn dump(&self, mb: &MessageBuilder) -> Result<Vec<u8>, String> {
         match self {
 
-            Message::NotifyMessage {
-                stream_unit: Unit { stream_name, track_name, track_type, unit },
-                saved_ms,
-                notify_type
-            } => {
-                let last = match notify_type {
-                    NotifyType::Ready(last_element) => Some(*last_element),
-                    NotifyType::New => None,
-                    _ => panic!("Not implemented")
-                };
-                Ok(build_notify_message(mb, *stream_name, track_type, *track_name, *unit, *saved_ms, last))
-            }
 
             Message::StreamTrackUnitElementsRequest {
                 request_id,

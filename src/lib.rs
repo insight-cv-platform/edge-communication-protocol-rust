@@ -69,7 +69,6 @@ pub struct TrackInfo {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use std::time::{SystemTime, UNIX_EPOCH};
 
     use uuid::Uuid;
 
@@ -78,50 +77,6 @@ mod tests {
     use crate::message_builder::media_store::*;
     use crate::protocol::Message;
     use crate::utils::get_avro_path;
-
-    #[test]
-    fn test_load_schemas() {
-        let mb = MessageBuilder::new(get_avro_path().as_str());
-        for s in MessageBuilder::schema_files() {
-            let _s = mb.get_schema(&s.1);
-        }
-    }
-
-    #[test]
-    fn test_notify_message() {
-        let track_name = pack_track_name(&String::from("test")).unwrap();
-        let stream_id = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
-        let stream_name = pack_stream_name(&stream_id);
-        let mb = MessageBuilder::new(get_avro_path().as_str());
-        let saved_ms = u64::try_from(
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_millis(),
-        )
-            .unwrap();
-
-        let _m = build_notify_message(&mb,
-                                      stream_name,
-                                      &TrackType::Meta,
-                                      track_name,
-                                      0,
-                                      saved_ms,
-                                      Some(10),
-        );
-
-        let m =
-            build_notify_message(&mb, stream_name, &TrackType::Meta, track_name, 0, saved_ms, None);
-        let value = mb.read_protocol_message(&m).unwrap();
-        let pm = Message::from(&value.0, value.1);
-        match pm {
-            Message::NotifyMessage { .. } => {
-                let new_m = pm.dump(&mb).unwrap();
-                assert_eq!(&m, &new_m);
-            }
-            _ => panic!("Unexpected ProtocolMessage kind"),
-        }
-    }
 
     #[test]
     fn test_stream_track_unit_element_request() {
