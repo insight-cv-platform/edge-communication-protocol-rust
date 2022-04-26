@@ -28,6 +28,17 @@ impl NotifyMessage {
             notify_type,
         }
     }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self)
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    #[classattr]
+    const __hash__: Option<Py<PyAny>> = None;
 }
 
 impl FromProtocolMessage for NotifyMessage {
@@ -146,7 +157,7 @@ mod tests {
         assert_eq!(req, new_req);
     }
 
-    # [test]
+    #[test]
     fn test_load_save_req() {
         test_load_save_req_int(NotifyType::new());
         test_load_save_req_int(NotifyType::ready(100));

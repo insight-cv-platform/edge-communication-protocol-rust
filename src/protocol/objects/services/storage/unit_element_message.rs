@@ -38,6 +38,17 @@ impl UnitElementMessage {
             last,
         }
     }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self)
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    #[classattr]
+    const __hash__: Option<Py<PyAny>> = None;
 }
 
 impl FromProtocolMessage for UnitElementMessage {

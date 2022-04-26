@@ -34,6 +34,17 @@ impl PingRequestResponse {
             mtype,
         }
     }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self)
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    #[classattr]
+    const __hash__: Option<Py<PyAny>> = None;
 }
 
 impl FromProtocolMessage for PingRequestResponse {
@@ -128,5 +139,4 @@ mod tests {
         test_load_save_req_rep(PingRequestResponseType::Request);
         test_load_save_req_rep(PingRequestResponseType::Response);
     }
-
 }

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Debug;
 use avro_rs::types::Value;
 use uuid::Uuid;
 use pyo3::prelude::*;
@@ -44,6 +45,17 @@ impl Payload {
             attributes,
         }
     }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self)
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    #[classattr]
+    const __hash__: Option<Py<PyAny>> = None;
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Copy)]
@@ -64,6 +76,17 @@ impl TrackInfo {
             track_name,
         }
     }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self)
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    #[classattr]
+    const __hash__: Option<Py<PyAny>> = None;
 }
 
 pub fn get_empty_track_name() -> TrackName {
@@ -127,6 +150,17 @@ impl Unit {
             unit,
         }
     }
+
+    fn __repr__(&self) -> String {
+        format!("{:?}", self)
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    #[classattr]
+    const __hash__: Option<Py<PyAny>> = None;
 }
 
 fn get_track_type_enum(track_type: &TrackType) -> Value {
@@ -152,7 +186,7 @@ impl Unit {
 pub enum NotifyTypeImpl {
     Ready(ElementType),
     New,
-    NotImplemented
+    NotImplemented,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -177,6 +211,16 @@ impl NotifyType {
         }
     }
 
+    fn __repr__(&self) -> String {
+        format!("{:?}", self.obj)
+    }
+
+    fn __str__(&self) -> String {
+        self.__repr__()
+    }
+
+    #[classattr]
+    const __hash__: Option<Py<PyAny>> = None;
 }
 
 
