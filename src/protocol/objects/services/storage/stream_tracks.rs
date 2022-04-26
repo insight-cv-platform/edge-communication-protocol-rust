@@ -1,9 +1,9 @@
-use crate::protocol2::primitives::{StreamName, track_type_literal_to_track_type, TrackInfo, TrackName, TrackType};
+use crate::protocol::primitives::{StreamName, track_type_literal_to_track_type, TrackInfo, TrackName, TrackType};
 use avro_rs::types::Value;
 use log::warn;
 use pyo3::prelude::*;
-use crate::protocol2::avro::{Builder, ProtocolMessage, STREAM_TRACKS_REQUEST_SCHEMA, STREAM_TRACKS_RESPONSE_SCHEMA, TRACK_INFO_SCHEMA};
-use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
+use crate::protocol::avro::{Builder, ProtocolMessage, STREAM_TRACKS_REQUEST_SCHEMA, STREAM_TRACKS_RESPONSE_SCHEMA, TRACK_INFO_SCHEMA};
+use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
 use crate::utils::fill_byte_array;
 
 fn get_track_type_enum(track_type: &TrackType) -> Value {
@@ -17,8 +17,11 @@ fn get_track_type_enum(track_type: &TrackType) -> Value {
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
 pub struct StreamTracksResponse {
+    #[pyo3(get, set)]
     pub request_id: i64,
+    #[pyo3(get, set)]
     pub stream_name: StreamName,
+    #[pyo3(get, set)]
     pub tracks: Vec<TrackInfo>,
 }
 
@@ -124,8 +127,11 @@ impl FromProtocolMessage for StreamTracksResponse {
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
 pub struct StreamTracksRequest {
+    #[pyo3(get, set)]
     pub request_id: i64,
+    #[pyo3(get, set)]
     pub topic: String,
+    #[pyo3(get, set)]
     pub stream_name: StreamName,
 }
 
@@ -193,10 +199,10 @@ impl FromProtocolMessage for StreamTracksRequest {
 #[cfg(test)]
 mod tests {
     use uuid::Uuid;
-    use crate::protocol2::avro::Builder;
-    use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
-    use crate::protocol2::objects::services::storage::stream_tracks::{StreamTracksRequest, StreamTracksResponse};
-    use crate::protocol2::primitives::{pack_stream_name, pack_track_name, TrackInfo, TrackType};
+    use crate::protocol::avro::Builder;
+    use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
+    use crate::protocol::objects::services::storage::stream_tracks::{StreamTracksRequest, StreamTracksResponse};
+    use crate::protocol::primitives::{pack_stream_name, pack_track_name, TrackInfo, TrackType};
     use crate::utils::get_avro_path;
 
     #[test]
@@ -212,9 +218,9 @@ mod tests {
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();
-        let req_serialized = mb.save(req_envelope);
+        let req_serialized = mb.save_from_avro(req_envelope);
 
-        let req_envelope_opt = mb.load(req_serialized);
+        let req_envelope_opt = mb.load_to_avro(req_serialized);
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();
@@ -246,9 +252,9 @@ mod tests {
         assert!(rep_envelope_opt.is_some());
 
         let rep_envelope = rep_envelope_opt.unwrap();
-        let rep_serialized = mb.save(rep_envelope);
+        let rep_serialized = mb.save_from_avro(rep_envelope);
 
-        let rep_envelope_opt = mb.load(rep_serialized);
+        let rep_envelope_opt = mb.load_to_avro(rep_serialized);
         assert!(rep_envelope_opt.is_some());
 
         let rep_envelope = rep_envelope_opt.unwrap();

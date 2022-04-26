@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use avro_rs::types::Value;
 use log::warn;
 use pyo3::prelude::*;
-use crate::protocol2::avro::{Builder, ProtocolMessage, SERVICES_FFPROBE_REQUEST_SCHEMA, SERVICES_FFPROBE_RESPONSE_SCHEMA};
-use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
+use crate::protocol::avro::{Builder, ProtocolMessage, SERVICES_FFPROBE_REQUEST_SCHEMA, SERVICES_FFPROBE_RESPONSE_SCHEMA};
+use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
 use crate::utils::{gen_hash_map, value_to_string};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -37,9 +37,13 @@ fn get_services_ffprobe_response_type_enum(response_type: &str) -> ServicesFFPro
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
 pub struct ServicesFFProbeRequest {
+    #[pyo3(get, set)]
     pub request_id: i64,
+    #[pyo3(get, set)]
     pub topic: String,
+    #[pyo3(get, set)]
     pub url: String,
+    #[pyo3(get, set)]
     pub attributes: HashMap<String, String>,
 }
 
@@ -63,9 +67,13 @@ impl ServicesFFProbeRequest {
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
 pub struct ServicesFFProbeResponse {
+    #[pyo3(get, set)]
     pub request_id: i64,
+    #[pyo3(get, set)]
     pub response_type: ServicesFFProbeResponseType,
+    #[pyo3(get, set)]
     pub time_spent: i64,
+    #[pyo3(get, set)]
     pub streams: Vec<HashMap<String, String>>,
 }
 
@@ -197,9 +205,9 @@ impl ToProtocolMessage for ServicesFFProbeResponse {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-    use crate::protocol2::avro::Builder;
-    use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
-    use crate::protocol2::objects::services::ffprobe::{ServicesFFProbeRequest, ServicesFFProbeResponse, ServicesFFProbeResponseType};
+    use crate::protocol::avro::Builder;
+    use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
+    use crate::protocol::objects::services::ffprobe::{ServicesFFProbeRequest, ServicesFFProbeResponse, ServicesFFProbeResponseType};
     use crate::utils::get_avro_path;
 
     #[test]
@@ -216,9 +224,9 @@ mod tests {
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();
-        let req_serialized = mb.save(req_envelope);
+        let req_serialized = mb.save_from_avro(req_envelope);
 
-        let req_envelope_opt = mb.load(req_serialized);
+        let req_envelope_opt = mb.load_to_avro(req_serialized);
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();
@@ -245,9 +253,9 @@ mod tests {
         assert!(res_envelope_opt.is_some());
 
         let res_envelope = res_envelope_opt.unwrap();
-        let res_serialized = mb.save(res_envelope);
+        let res_serialized = mb.save_from_avro(res_envelope);
 
-        let res_envelope_opt = mb.load(res_serialized);
+        let res_envelope_opt = mb.load_to_avro(res_serialized);
         assert!(res_envelope_opt.is_some());
 
         let res_envelope = res_envelope_opt.unwrap();

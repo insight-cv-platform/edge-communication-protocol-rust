@@ -1,8 +1,8 @@
 use avro_rs::types::Value;
 use log::warn;
 use pyo3::prelude::*;
-use crate::protocol2::avro::{Builder, PING_REQUEST_RESPONSE_SCHEMA, ProtocolMessage};
-use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
+use crate::protocol::avro::{Builder, PING_REQUEST_RESPONSE_SCHEMA, ProtocolMessage};
+use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
 
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
@@ -14,8 +14,11 @@ pub enum PingRequestResponseType {
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
 pub struct PingRequestResponse {
+    #[pyo3(get, set)]
     pub request_id: i64,
+    #[pyo3(get, set)]
     pub topic: String,
+    #[pyo3(get, set)]
     pub mtype: PingRequestResponseType,
 }
 
@@ -87,9 +90,9 @@ impl ToProtocolMessage for PingRequestResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::protocol2::avro::Builder;
-    use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
-    use crate::protocol2::objects::services::ping::{PingRequestResponse, PingRequestResponseType};
+    use crate::protocol::avro::Builder;
+    use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
+    use crate::protocol::objects::services::ping::{PingRequestResponse, PingRequestResponseType};
     use crate::utils::get_avro_path;
 
     fn test_load_save_req_rep(mt: PingRequestResponseType) {
@@ -103,9 +106,9 @@ mod tests {
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();
-        let req_serialized = mb.save(req_envelope);
+        let req_serialized = mb.save_from_avro(req_envelope);
 
-        let req_envelope_opt = mb.load(req_serialized);
+        let req_envelope_opt = mb.load_to_avro(req_serialized);
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();

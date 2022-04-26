@@ -2,18 +2,23 @@ use std::collections::HashMap;
 use avro_rs::types::Value;
 use log::warn;
 use pyo3::prelude::*;
-use crate::protocol2::primitives::{ElementType, Unit};
-use crate::protocol2::avro::{Builder, ProtocolMessage, UNIT_ELEMENT_MESSAGE_SCHEMA};
-use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
+use crate::protocol::primitives::{ElementType, Unit};
+use crate::protocol::avro::{Builder, ProtocolMessage, UNIT_ELEMENT_MESSAGE_SCHEMA};
+use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
 use crate::utils::value_to_string;
 
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
 pub struct UnitElementMessage {
+    #[pyo3(get, set)]
     pub stream_unit: Unit,
+    #[pyo3(get, set)]
     pub element: ElementType,
+    #[pyo3(get, set)]
     pub value: Vec<u8>,
+    #[pyo3(get, set)]
     pub attributes: HashMap<String, String>,
+    #[pyo3(get, set)]
     pub last: bool,
 }
 
@@ -102,10 +107,10 @@ impl ToProtocolMessage for UnitElementMessage {
 mod tests {
     use std::collections::HashMap;
     use uuid::Uuid;
-    use crate::protocol2::avro::Builder;
-    use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
-    use crate::protocol2::objects::services::storage::unit_element_message::UnitElementMessage;
-    use crate::protocol2::primitives::{pack_stream_name, pack_track_name, Unit};
+    use crate::protocol::avro::Builder;
+    use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
+    use crate::protocol::objects::services::storage::unit_element_message::UnitElementMessage;
+    use crate::protocol::primitives::{pack_stream_name, pack_track_name, Unit};
     use crate::utils::get_avro_path;
 
     #[test]
@@ -121,16 +126,16 @@ mod tests {
             2,
             vec![0, 1],
             HashMap::from([("a".into(), "b".into()), ("c".into(), "d".into())]),
-            true
+            true,
         );
 
         let req_envelope_opt = req.save(&mb);
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();
-        let req_serialized = mb.save(req_envelope);
+        let req_serialized = mb.save_from_avro(req_envelope);
 
-        let req_envelope_opt = mb.load(req_serialized);
+        let req_envelope_opt = mb.load_to_avro(req_serialized);
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();

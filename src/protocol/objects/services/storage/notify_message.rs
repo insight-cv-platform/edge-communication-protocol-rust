@@ -1,16 +1,18 @@
-use crate::protocol2::primitives::{NotifyType, NotifyTypeImpl, Unit};
+use crate::protocol::primitives::{NotifyType, NotifyTypeImpl, Unit};
 use pyo3::prelude::*;
 use avro_rs::types::Value;
 use log::warn;
-use crate::message_builder::NOTIFY_MESSAGE_SCHEMA;
-use crate::protocol2::avro::{Builder, ProtocolMessage};
-use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
+use crate::protocol::avro::{Builder, NOTIFY_MESSAGE_SCHEMA, ProtocolMessage};
+use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
 
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
 pub struct NotifyMessage {
+    #[pyo3(get, set)]
     pub stream_unit: Unit,
+    #[pyo3(get, set)]
     pub saved_ms: u64,
+    #[pyo3(get, set)]
     pub notify_type: NotifyType,
 }
 
@@ -107,10 +109,10 @@ impl ToProtocolMessage for NotifyMessage {
 #[cfg(test)]
 mod tests {
     use uuid::Uuid;
-    use crate::protocol2::avro::Builder;
-    use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
-    use crate::protocol2::objects::services::storage::notify_message::NotifyMessage;
-    use crate::protocol2::primitives::{NotifyType, pack_stream_name, pack_track_name, Unit};
+    use crate::protocol::avro::Builder;
+    use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
+    use crate::protocol::objects::services::storage::notify_message::NotifyMessage;
+    use crate::protocol::primitives::{NotifyType, pack_stream_name, pack_track_name, Unit};
     use crate::utils::get_avro_path;
 
     fn test_load_save_req_int(notify_type: NotifyType) {
@@ -128,9 +130,9 @@ mod tests {
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();
-        let req_serialized = mb.save(req_envelope);
+        let req_serialized = mb.save_from_avro(req_envelope);
 
-        let req_envelope_opt = mb.load(req_serialized);
+        let req_envelope_opt = mb.load_to_avro(req_serialized);
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();

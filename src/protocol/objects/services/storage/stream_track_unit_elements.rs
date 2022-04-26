@@ -1,19 +1,23 @@
 use pyo3::prelude::*;
 use avro_rs::types::Value;
 use log::warn;
-use crate::protocol2::avro::{ProtocolMessage, STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA, STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA, Builder};
+use crate::protocol::avro::{ProtocolMessage, STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA, STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA, Builder};
 
-use crate::protocol2::primitives::{ElementType, Payload, StreamName, TrackName, TrackType, Unit};
-use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
+use crate::protocol::primitives::{ElementType, Payload, Unit};
+use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
 use crate::utils::value_to_string;
 
 
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
 pub struct StreamTrackUnitElementsRequest {
+    #[pyo3(get, set)]
     pub request_id: i64,
+    #[pyo3(get, set)]
     pub topic: String,
+    #[pyo3(get, set)]
     pub stream_unit: Unit,
+    #[pyo3(get, set)]
     pub max_element: ElementType,
 }
 
@@ -84,8 +88,7 @@ impl ToProtocolMessage for StreamTrackUnitElementsRequest {
         obj.put("topic", Value::String(self.topic.clone()));
         obj.put(
             "stream_unit",
-            get_stream_unit(self.stream_unit.stream_name.clone(), &self.stream_unit.track_type,
-                            self.stream_unit.track_name.clone(), self.stream_unit.unit),
+            self.stream_unit.to_avro_record(),
         );
         obj.put("max_element", Value::Long(self.max_element.into()));
 
@@ -99,8 +102,11 @@ impl ToProtocolMessage for StreamTrackUnitElementsRequest {
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
 pub struct StreamTrackUnitElementsResponse {
+    #[pyo3(get, set)]
     pub request_id: i64,
+    #[pyo3(get, set)]
     pub stream_unit: Unit,
+    #[pyo3(get, set)]
     pub values: Vec<Payload>,
 }
 
@@ -115,14 +121,6 @@ impl StreamTrackUnitElementsResponse {
             stream_unit,
             values,
         }
-    }
-}
-
-fn get_track_type_enum(track_type: &TrackType) -> Value {
-    match track_type {
-        TrackType::Video => Value::Enum(0, "VIDEO".into()),
-        TrackType::Meta => Value::Enum(1, "META".into()),
-        TrackType::NotImplemented => panic!("Not supported track type")
     }
 }
 
@@ -198,19 +196,6 @@ impl FromProtocolMessage for StreamTrackUnitElementsResponse {
     }
 }
 
-fn get_stream_unit(
-    stream_name: StreamName,
-    track_type: &TrackType,
-    track_name: TrackName,
-    unit: i64,
-) -> Value {
-    Value::Record(vec![
-        ("stream_name".into(), Value::Bytes(stream_name.to_vec())),
-        ("track_name".into(), Value::Bytes(track_name.to_vec())),
-        ("track_type".into(), get_track_type_enum(track_type)),
-        ("unit".into(), Value::Long(unit)),
-    ])
-}
 
 fn payload_to_avro(p: &Payload) -> Value {
     Value::Record(vec![
@@ -225,7 +210,7 @@ impl ToProtocolMessage for StreamTrackUnitElementsResponse {
         obj.put("request_id", Value::Long(self.request_id));
         obj.put(
             "stream_unit",
-            get_stream_unit(self.stream_unit.stream_name.clone(), &self.stream_unit.track_type, self.stream_unit.track_name.clone(), self.stream_unit.unit),
+            self.stream_unit.to_avro_record(),
         );
 
         let values: Vec<Value> = self.values.iter().map(|x| payload_to_avro(x)).collect();
@@ -241,10 +226,10 @@ impl ToProtocolMessage for StreamTrackUnitElementsResponse {
 mod tests {
     use std::collections::HashMap;
     use uuid::Uuid;
-    use crate::protocol2::avro::Builder;
-    use crate::protocol2::objects::{FromProtocolMessage, ToProtocolMessage};
-    use crate::protocol2::objects::services::storage::stream_track_unit_elements::{StreamTrackUnitElementsRequest, StreamTrackUnitElementsResponse};
-    use crate::protocol2::primitives::{pack_stream_name, pack_track_name, Payload, Unit};
+    use crate::protocol::avro::Builder;
+    use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
+    use crate::protocol::objects::services::storage::stream_track_unit_elements::{StreamTrackUnitElementsRequest, StreamTrackUnitElementsResponse};
+    use crate::protocol::primitives::{pack_stream_name, pack_track_name, Payload, Unit};
     use crate::utils::get_avro_path;
 
     #[test]
@@ -265,9 +250,9 @@ mod tests {
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();
-        let req_serialized = mb.save(req_envelope);
+        let req_serialized = mb.save_from_avro(req_envelope);
 
-        let req_envelope_opt = mb.load(req_serialized);
+        let req_envelope_opt = mb.load_to_avro(req_serialized);
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();
@@ -307,9 +292,9 @@ mod tests {
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();
-        let req_serialized = mb.save(req_envelope);
+        let req_serialized = mb.save_from_avro(req_envelope);
 
-        let req_envelope_opt = mb.load(req_serialized);
+        let req_envelope_opt = mb.load_to_avro(req_serialized);
         assert!(req_envelope_opt.is_some());
 
         let req_envelope = req_envelope_opt.unwrap();

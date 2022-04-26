@@ -29,7 +29,9 @@ impl Default for TrackType {
 #[derive(Debug, Default, Clone, PartialEq)]
 #[pyclass]
 pub struct Payload {
+    #[pyo3(get, set)]
     pub data: Vec<u8>,
+    #[pyo3(get, set)]
     pub attributes: HashMap<String, String>,
 }
 
@@ -47,7 +49,9 @@ impl Payload {
 #[derive(Debug, Default, Clone, PartialEq, Copy)]
 #[pyclass]
 pub struct TrackInfo {
+    #[pyo3(get, set)]
     pub track_type: TrackType,
+    #[pyo3(get, set)]
     pub track_name: TrackName,
 }
 
@@ -88,9 +92,13 @@ pub fn pack_track_name(track_name: &String) -> std::result::Result<TrackName, St
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
 pub struct Unit {
+    #[pyo3(get, set)]
     pub stream_name: StreamName,
+    #[pyo3(get, set)]
     pub track_name: TrackName,
+    #[pyo3(get, set)]
     pub track_type: TrackType,
+    #[pyo3(get, set)]
     pub unit: i64,
 }
 

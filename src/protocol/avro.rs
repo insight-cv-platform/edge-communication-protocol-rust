@@ -7,6 +7,15 @@ use avro_rs::{from_avro_datum, Schema, to_avro_datum};
 use avro_rs::schema::Name;
 use avro_rs::types::{Record, Value};
 use log::warn;
+use pyo3::PyClass;
+use crate::protocol::objects::services::ffprobe::{ServicesFFProbeRequest, ServicesFFProbeResponse};
+use crate::protocol::objects::services::ping::PingRequestResponse;
+use crate::protocol::objects::services::storage::notify_message::NotifyMessage;
+use crate::protocol::objects::services::storage::stream_track_unit_elements::{StreamTrackUnitElementsRequest, StreamTrackUnitElementsResponse};
+use crate::protocol::objects::services::storage::stream_track_units::{StreamTrackUnitsRequest, StreamTrackUnitsResponse};
+use crate::protocol::objects::services::storage::stream_tracks::{StreamTracksRequest, StreamTracksResponse};
+use crate::protocol::objects::services::storage::unit_element_message::UnitElementMessage;
+use crate::protocol::objects::{ToProtocolMessage, FromProtocolMessage};
 
 use crate::utils;
 
@@ -200,7 +209,7 @@ impl Builder {
         }
     }
 
-    pub fn load(&self, obj: Vec<u8>) -> Option<ProtocolMessage> {
+    pub fn load_to_avro(&self, obj: Vec<u8>) -> Option<ProtocolMessage> {
         match self.builder.read_protocol_message(&obj) {
             Ok((schema, object)) => Some(ProtocolMessage { schema, object }),
             Err(m) => {
@@ -210,8 +219,66 @@ impl Builder {
         }
     }
 
-    pub fn save(&self, message: ProtocolMessage) -> Vec<u8> {
+    pub fn save_from_avro(&self, message: ProtocolMessage) -> Vec<u8> {
         self.builder.pack_message_into_envelope(message.schema.as_str(), message.object)
+    }
+
+    pub fn save(&self, obj: &PyAny) -> Option<Vec<u8>> {
+        fn try_to<T: Clone + PyClass + ToProtocolMessage>(mb: &Builder, x: &PyAny) -> Option<Vec<u8>> {
+            if x.is_instance_of::<T>().unwrap() {
+                let ro: T = x.extract().unwrap();
+                let protocol_message_res = ro.save(mb);
+                match protocol_message_res {
+                    None => None,
+                    Some(m) => {
+                        Some(mb.save_from_avro(m))
+                    }
+                }
+            } else {
+                None
+            }
+        }
+
+        try_to::<UnitElementMessage>(self, obj)
+            .or_else(|| try_to::<NotifyMessage>(self, obj))
+            .or_else(|| try_to::<PingRequestResponse>(self, obj))
+            .or_else(|| try_to::<ServicesFFProbeRequest>(self, obj))
+            .or_else(|| try_to::<ServicesFFProbeResponse>(self, obj))
+            .or_else(|| try_to::<StreamTrackUnitElementsRequest>(self, obj))
+            .or_else(|| try_to::<StreamTrackUnitElementsResponse>(self, obj))
+            .or_else(|| try_to::<StreamTracksRequest>(self, obj))
+            .or_else(|| try_to::<StreamTracksResponse>(self, obj))
+            .or_else(|| try_to::<StreamTrackUnitsRequest>(self, obj))
+            .or_else(|| try_to::<StreamTrackUnitsResponse>(self, obj))
+    }
+
+    pub fn load(&self, message: Vec<u8>) -> Option<PyObject> {
+        fn try_from<T: FromProtocolMessage + PyClass + Into<PyClassInitializer<T>>>(message: &ProtocolMessage) -> Option<PyObject> {
+            let gil = Python::acquire_gil();
+            let py = gil.python();
+
+            match T::load(message) {
+                None => None,
+                Some(o) => Some(Py::new(py, o).unwrap().to_object(py))
+            }
+        }
+
+        match self.load_to_avro(message) {
+            None => None,
+            Some(obj) => {
+                try_from::<UnitElementMessage>(&obj)
+                    .or_else(|| try_from::<NotifyMessage>(&obj))
+                    .or_else(|| try_from::<PingRequestResponse>(&obj))
+                    .or_else(|| try_from::<ServicesFFProbeRequest>(&obj))
+                    .or_else(|| try_from::<ServicesFFProbeResponse>(&obj))
+                    .or_else(|| try_from::<StreamTrackUnitElementsRequest>(&obj))
+                    .or_else(|| try_from::<StreamTrackUnitElementsResponse>(&obj))
+                    .or_else(|| try_from::<StreamTracksRequest>(&obj))
+                    .or_else(|| try_from::<StreamTracksResponse>(&obj))
+                    .or_else(|| try_from::<StreamTrackUnitsRequest>(&obj))
+                    .or_else(|| try_from::<StreamTrackUnitsResponse>(&obj))
+            }
+        }
     }
 }
 
@@ -224,7 +291,12 @@ impl Builder {
 
 #[cfg(test)]
 mod tests {
-    use crate::protocol2::avro::{Builder, UNIT_ELEMENT_MESSAGE_SCHEMA};
+    use std::collections::HashMap;
+    use pyo3::{Py, PyAny, Python, ToPyObject};
+    use uuid::Uuid;
+    use crate::protocol::avro::{Builder, UNIT_ELEMENT_MESSAGE_SCHEMA};
+    use crate::protocol::objects::services::storage::unit_element_message::UnitElementMessage;
+    use crate::protocol::primitives::{pack_stream_name, pack_track_name, Unit};
     use crate::utils::get_avro_path;
 
     #[test]
@@ -232,4 +304,27 @@ mod tests {
         let mb = Builder::new(get_avro_path().as_str());
         let _r = mb.get_record(UNIT_ELEMENT_MESSAGE_SCHEMA);
     }
+
+    // #[test]
+    // fn test_serialization_deserialization() {
+    //     let mb = Builder::new(get_avro_path().as_str());
+    //
+    //     let track_name = pack_track_name(&String::from("test")).unwrap();
+    //     let stream_uuid = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
+    //     let stream_name = pack_stream_name(&stream_uuid);
+    //
+    //     let req = UnitElementMessage::new(
+    //         Unit::new(stream_name.to_vec(), track_name.to_vec(), String::from("VIDEO"), 3),
+    //         2,
+    //         vec![0, 1],
+    //         HashMap::from([("a".into(), "b".into()), ("c".into(), "d".into())]),
+    //         true,
+    //     );
+    //
+    //     let gil = Python::acquire_gil();
+    //     let py = gil.python();
+    //     let obj = Py::new(py, req).unwrap().to_object(py);
+    //     let pyobj = obj.as_ref(py);
+    //     let bytes = mb.save(pyobj).unwrap();
+    // }
 }

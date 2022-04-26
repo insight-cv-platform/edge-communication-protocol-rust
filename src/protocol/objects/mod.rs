@@ -1,12 +1,12 @@
-mod services;
+pub mod services;
 
-use crate::protocol2::avro::{Builder, ProtocolMessage};
+use crate::protocol::avro::{Builder, ProtocolMessage};
 
-trait FromProtocolMessage {
+pub trait FromProtocolMessage {
     fn load(message: &ProtocolMessage) -> Option<Self> where Self: Sized;
 }
 
-trait ToProtocolMessage {
+pub trait ToProtocolMessage {
     fn save(&self, mb: &Builder) -> Option<ProtocolMessage>;
 }
 
