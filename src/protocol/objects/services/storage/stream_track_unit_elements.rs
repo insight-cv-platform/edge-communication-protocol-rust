@@ -1,7 +1,9 @@
 use pyo3::prelude::*;
 use avro_rs::types::Value;
 use log::warn;
-use crate::protocol::avro::{ProtocolMessage, STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA, STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA, Builder};
+use crate::protocol::avro::{ProtocolMessage, Builder,
+                            STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA,
+                            STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA};
 
 use crate::protocol::primitives::{ElementType, Payload, Unit};
 use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
