@@ -87,6 +87,9 @@ jobs:
         path: dist
 
   linux-cross:
+    env:
+      PYO3_CROSS_PYTHON_VERSION: 3.9
+      PYO3_CROSS_LIB_DIR: /home/pyo3/cross/sysroot/usr/lib
     runs-on: ubuntu-latest
     strategy:
       matrix:
