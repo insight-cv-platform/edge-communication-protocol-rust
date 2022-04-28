@@ -3,8 +3,6 @@ use std::fmt::Debug;
 use avro_rs::types::Value;
 use uuid::Uuid;
 use pyo3::prelude::*;
-use serde::{Serialize, Deserialize};
-
 use crate::utils::fill_byte_array;
 
 pub const TRACK_NAME_MAX_LENGTH: usize = 16;
@@ -29,7 +27,7 @@ impl Default for TrackType {
 }
 
 
-#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq)]
 #[pyclass]
 pub struct Payload {
     #[pyo3(get, set)]
@@ -60,7 +58,7 @@ impl Payload {
     const __hash__: Option<Py<PyAny>> = None;
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Copy, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Copy)]
 #[pyclass]
 pub struct TrackInfo {
     #[pyo3(get, set)]
