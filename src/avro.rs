@@ -291,12 +291,7 @@ impl Builder {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use pyo3::{Py, PyAny, Python, ToPyObject};
-    use uuid::Uuid;
-    use crate::protocol::avro::{Builder, UNIT_ELEMENT_MESSAGE_SCHEMA};
-    use crate::objects::services::storage::unit_element_message::UnitElementMessage;
-    use crate::protocol::primitives::{pack_stream_name, pack_track_name, Unit};
+    use crate::avro::{Builder, UNIT_ELEMENT_MESSAGE_SCHEMA};
     use crate::utils::get_avro_path;
 
     #[test]
