@@ -27,7 +27,7 @@ impl Default for TrackType {
 }
 
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[pyclass]
 pub struct Payload {
     #[pyo3(get, set)]
