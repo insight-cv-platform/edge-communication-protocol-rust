@@ -3,6 +3,8 @@ use std::fmt::Debug;
 use avro_rs::types::Value;
 use uuid::Uuid;
 use pyo3::prelude::*;
+use serde::{Serialize, Deserialize};
+
 use crate::utils::fill_byte_array;
 
 pub const TRACK_NAME_MAX_LENGTH: usize = 16;
