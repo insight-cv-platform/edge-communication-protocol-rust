@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use avro_rs::types::Value;
 use log::warn;
 use pyo3::prelude::*;
-use crate::protocol::avro::{Builder, ProtocolMessage, SERVICES_FFPROBE_REQUEST_SCHEMA, SERVICES_FFPROBE_RESPONSE_SCHEMA};
-use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
+use crate::avro::{Builder, ProtocolMessage, SERVICES_FFPROBE_REQUEST_SCHEMA, SERVICES_FFPROBE_RESPONSE_SCHEMA};
+use crate::objects::{FromProtocolMessage, ToProtocolMessage};
 use crate::utils::{gen_hash_map, value_to_string};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -228,8 +228,8 @@ impl ToProtocolMessage for ServicesFFProbeResponse {
 mod tests {
     use std::collections::HashMap;
     use crate::protocol::avro::Builder;
-    use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
-    use crate::protocol::objects::services::ffprobe::{ServicesFFProbeRequest, ServicesFFProbeResponse, ServicesFFProbeResponseType};
+    use crate::objects::{FromProtocolMessage, ToProtocolMessage};
+    use crate::objects::services::ffprobe::{ServicesFFProbeRequest, ServicesFFProbeResponse, ServicesFFProbeResponseType};
     use crate::utils::get_avro_path;
 
     #[test]

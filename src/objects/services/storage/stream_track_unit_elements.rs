@@ -1,12 +1,12 @@
 use pyo3::prelude::*;
 use avro_rs::types::Value;
 use log::warn;
-use crate::protocol::avro::{ProtocolMessage, Builder,
+use crate::avro::{ProtocolMessage, Builder,
                             STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA,
                             STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA};
 
-use crate::protocol::primitives::{ElementType, Payload, Unit};
-use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
+use crate::primitives::{ElementType, Payload, Unit};
+use crate::objects::{FromProtocolMessage, ToProtocolMessage};
 use crate::utils::value_to_string;
 
 
@@ -250,10 +250,10 @@ impl ToProtocolMessage for StreamTrackUnitElementsResponse {
 mod tests {
     use std::collections::HashMap;
     use uuid::Uuid;
-    use crate::protocol::avro::Builder;
-    use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
-    use crate::protocol::objects::services::storage::stream_track_unit_elements::{StreamTrackUnitElementsRequest, StreamTrackUnitElementsResponse};
-    use crate::protocol::primitives::{pack_stream_name, pack_track_name, Payload, Unit};
+    use crate::avro::Builder;
+    use crate::objects::{FromProtocolMessage, ToProtocolMessage};
+    use crate::objects::services::storage::stream_track_unit_elements::{StreamTrackUnitElementsRequest, StreamTrackUnitElementsResponse};
+    use crate::primitives::{pack_stream_name, pack_track_name, Payload, Unit};
     use crate::utils::get_avro_path;
 
     #[test]

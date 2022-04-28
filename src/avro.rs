@@ -8,14 +8,14 @@ use avro_rs::schema::Name;
 use avro_rs::types::{Record, Value};
 use log::warn;
 use pyo3::PyClass;
-use crate::protocol::objects::services::ffprobe::{ServicesFFProbeRequest, ServicesFFProbeResponse};
-use crate::protocol::objects::services::ping::PingRequestResponse;
-use crate::protocol::objects::services::storage::notify_message::NotifyMessage;
-use crate::protocol::objects::services::storage::stream_track_unit_elements::{StreamTrackUnitElementsRequest, StreamTrackUnitElementsResponse};
-use crate::protocol::objects::services::storage::stream_track_units::{StreamTrackUnitsRequest, StreamTrackUnitsResponse};
-use crate::protocol::objects::services::storage::stream_tracks::{StreamTracksRequest, StreamTracksResponse};
-use crate::protocol::objects::services::storage::unit_element_message::UnitElementMessage;
-use crate::protocol::objects::{ToProtocolMessage, FromProtocolMessage};
+use crate::objects::services::ffprobe::{ServicesFFProbeRequest, ServicesFFProbeResponse};
+use crate::objects::services::ping::PingRequestResponse;
+use crate::objects::services::storage::notify_message::NotifyMessage;
+use crate::objects::services::storage::stream_track_unit_elements::{StreamTrackUnitElementsRequest, StreamTrackUnitElementsResponse};
+use crate::objects::services::storage::stream_track_units::{StreamTrackUnitsRequest, StreamTrackUnitsResponse};
+use crate::objects::services::storage::stream_tracks::{StreamTracksRequest, StreamTracksResponse};
+use crate::objects::services::storage::unit_element_message::UnitElementMessage;
+use crate::objects::{ToProtocolMessage, FromProtocolMessage};
 
 use crate::utils;
 
@@ -295,7 +295,7 @@ mod tests {
     use pyo3::{Py, PyAny, Python, ToPyObject};
     use uuid::Uuid;
     use crate::protocol::avro::{Builder, UNIT_ELEMENT_MESSAGE_SCHEMA};
-    use crate::protocol::objects::services::storage::unit_element_message::UnitElementMessage;
+    use crate::objects::services::storage::unit_element_message::UnitElementMessage;
     use crate::protocol::primitives::{pack_stream_name, pack_track_name, Unit};
     use crate::utils::get_avro_path;
 

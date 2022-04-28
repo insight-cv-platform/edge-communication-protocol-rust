@@ -1,16 +1,18 @@
 use pyo3::prelude::*;
-use crate::protocol::avro::Builder;
-use crate::protocol::objects::services::ffprobe::{ServicesFFProbeRequest, ServicesFFProbeResponse, ServicesFFProbeResponseType};
-use crate::protocol::objects::services::ping::{PingRequestResponse, PingRequestResponseType};
-use crate::protocol::objects::services::storage::notify_message::NotifyMessage;
-use crate::protocol::objects::services::storage::stream_track_unit_elements::{StreamTrackUnitElementsRequest, StreamTrackUnitElementsResponse};
-use crate::protocol::objects::services::storage::stream_track_units::{StreamTrackUnitsRequest, StreamTrackUnitsResponse};
-use crate::protocol::objects::services::storage::stream_tracks::{StreamTracksRequest, StreamTracksResponse};
-use crate::protocol::objects::services::storage::unit_element_message::UnitElementMessage;
-use crate::protocol::primitives::{NotifyType, Payload, TrackInfo, TrackType, Unit};
+use objects::services::ffprobe::{ServicesFFProbeRequest, ServicesFFProbeResponse, ServicesFFProbeResponseType};
+use objects::services::ping::{PingRequestResponse, PingRequestResponseType};
+use objects::services::storage::notify_message::NotifyMessage;
+use objects::services::storage::stream_track_unit_elements::{StreamTrackUnitElementsRequest, StreamTrackUnitElementsResponse};
+use objects::services::storage::stream_track_units::{StreamTrackUnitsRequest, StreamTrackUnitsResponse};
+use objects::services::storage::stream_tracks::{StreamTracksRequest, StreamTracksResponse};
+use objects::services::storage::unit_element_message::UnitElementMessage;
+use crate::avro::Builder;
+use crate::primitives::{NotifyType, Payload, TrackInfo, TrackType, Unit};
 
 pub mod utils;
-pub mod protocol;
+pub mod objects;
+pub mod avro;
+pub mod primitives;
 
 #[pymodule]
 fn protocol(_py: Python, m: &PyModule) -> PyResult<()> {

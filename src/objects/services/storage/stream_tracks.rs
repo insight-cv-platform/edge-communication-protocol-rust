@@ -1,9 +1,9 @@
-use crate::protocol::primitives::{StreamName, track_type_literal_to_track_type, TrackInfo, TrackName, TrackType};
+use crate::primitives::{StreamName, track_type_literal_to_track_type, TrackInfo, TrackName, TrackType};
 use avro_rs::types::Value;
 use log::warn;
 use pyo3::prelude::*;
-use crate::protocol::avro::{Builder, ProtocolMessage, STREAM_TRACKS_REQUEST_SCHEMA, STREAM_TRACKS_RESPONSE_SCHEMA, TRACK_INFO_SCHEMA};
-use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
+use crate::avro::{Builder, ProtocolMessage, STREAM_TRACKS_REQUEST_SCHEMA, STREAM_TRACKS_RESPONSE_SCHEMA, TRACK_INFO_SCHEMA};
+use crate::objects::{FromProtocolMessage, ToProtocolMessage};
 use crate::utils::fill_byte_array;
 
 fn get_track_type_enum(track_type: &TrackType) -> Value {
@@ -221,10 +221,10 @@ impl FromProtocolMessage for StreamTracksRequest {
 #[cfg(test)]
 mod tests {
     use uuid::Uuid;
-    use crate::protocol::avro::Builder;
-    use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
-    use crate::protocol::objects::services::storage::stream_tracks::{StreamTracksRequest, StreamTracksResponse};
-    use crate::protocol::primitives::{pack_stream_name, pack_track_name, TrackInfo, TrackType};
+    use crate::avro::Builder;
+    use crate::objects::{FromProtocolMessage, ToProtocolMessage};
+    use crate::objects::services::storage::stream_tracks::{StreamTracksRequest, StreamTracksResponse};
+    use crate::primitives::{pack_stream_name, pack_track_name, TrackInfo, TrackType};
     use crate::utils::get_avro_path;
 
     #[test]
