@@ -1,8 +1,8 @@
 use avro_rs::types::Value;
 use log::warn;
 use pyo3::prelude::*;
-use crate::protocol::avro::{Builder, PING_REQUEST_RESPONSE_SCHEMA, ProtocolMessage};
-use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
+use crate::avro::{Builder, PING_REQUEST_RESPONSE_SCHEMA, ProtocolMessage};
+use crate::objects::{FromProtocolMessage, ToProtocolMessage};
 
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
@@ -102,8 +102,8 @@ impl ToProtocolMessage for PingRequestResponse {
 #[cfg(test)]
 mod tests {
     use crate::protocol::avro::Builder;
-    use crate::protocol::objects::{FromProtocolMessage, ToProtocolMessage};
-    use crate::protocol::objects::services::ping::{PingRequestResponse, PingRequestResponseType};
+    use crate::objects::{FromProtocolMessage, ToProtocolMessage};
+    use crate::objects::services::ping::{PingRequestResponse, PingRequestResponseType};
     use crate::utils::get_avro_path;
 
     fn test_load_save_req_rep(mt: PingRequestResponseType) {

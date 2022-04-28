@@ -1,6 +1,6 @@
 pub mod services;
 
-use crate::protocol::avro::{Builder, ProtocolMessage};
+use crate::avro::{Builder, ProtocolMessage};
 
 pub trait FromProtocolMessage {
     fn load(message: &ProtocolMessage) -> Option<Self> where Self: Sized;
