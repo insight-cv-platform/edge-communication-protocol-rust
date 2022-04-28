@@ -60,7 +60,7 @@ impl Payload {
     const __hash__: Option<Py<PyAny>> = None;
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Copy)]
+#[derive(Debug, Default, Clone, PartialEq, Copy, Serialize, Deserialize)]
 #[pyclass]
 pub struct TrackInfo {
     #[pyo3(get, set)]
