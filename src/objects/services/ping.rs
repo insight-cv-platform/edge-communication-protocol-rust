@@ -101,7 +101,7 @@ impl ToProtocolMessage for PingRequestResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::protocol::avro::Builder;
+    use crate::avro::Builder;
     use crate::objects::{FromProtocolMessage, ToProtocolMessage};
     use crate::objects::services::ping::{PingRequestResponse, PingRequestResponseType};
     use crate::utils::get_avro_path;

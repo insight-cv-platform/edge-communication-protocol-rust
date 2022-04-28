@@ -120,10 +120,10 @@ impl ToProtocolMessage for NotifyMessage {
 #[cfg(test)]
 mod tests {
     use uuid::Uuid;
-    use crate::protocol::avro::Builder;
+    use crate::avro::Builder;
     use crate::objects::{FromProtocolMessage, ToProtocolMessage};
     use crate::objects::services::storage::notify_message::NotifyMessage;
-    use crate::protocol::primitives::{NotifyType, pack_stream_name, pack_track_name, Unit};
+    use crate::primitives::{NotifyType, pack_stream_name, pack_track_name, Unit};
     use crate::utils::get_avro_path;
 
     fn test_load_save_req_int(notify_type: NotifyType) {
