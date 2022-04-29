@@ -12,7 +12,7 @@ pub type StreamName = [u8; STREAM_NAME_MAX_LENGTH];
 pub type TrackName = [u8; TRACK_NAME_MAX_LENGTH];
 pub type ElementType = i16;
 
-#[derive(Debug, Clone, PartialEq, Copy, Eq)]
+#[derive(Debug, Clone, PartialEq, Copy, Eq, Hash)]
 #[pyclass]
 pub enum TrackType {
     Video,
