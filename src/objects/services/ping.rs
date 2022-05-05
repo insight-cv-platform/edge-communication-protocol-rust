@@ -1,8 +1,8 @@
+use crate::avro::{Builder, ProtocolMessage, PING_REQUEST_RESPONSE_SCHEMA};
+use crate::objects::{FromProtocolMessage, ToProtocolMessage};
 use avro_rs::types::Value;
 use log::warn;
 use pyo3::prelude::*;
-use crate::avro::{Builder, PING_REQUEST_RESPONSE_SCHEMA, ProtocolMessage};
-use crate::objects::{FromProtocolMessage, ToProtocolMessage};
 
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
@@ -25,9 +25,11 @@ pub struct PingRequestResponse {
 #[pymethods]
 impl PingRequestResponse {
     #[new]
-    pub fn new(request_id: i64,
-               topic: String,
-               mtype: PingRequestResponseType) -> PingRequestResponse {
+    pub fn new(
+        request_id: i64,
+        topic: String,
+        mtype: PingRequestResponseType,
+    ) -> PingRequestResponse {
         PingRequestResponse {
             request_id,
             topic,
@@ -48,28 +50,31 @@ impl PingRequestResponse {
 }
 
 impl FromProtocolMessage for PingRequestResponse {
-    fn load(message: &ProtocolMessage) -> Option<Self> where Self: Sized {
+    fn load(message: &ProtocolMessage) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if message.schema != PING_REQUEST_RESPONSE_SCHEMA {
             return None;
         }
         match &message.object {
             Value::Record(fields) => match fields.as_slice() {
-                [
-                (_, Value::Long(request_id)),
-                (_, Value::String(topic)),
-                (_, Value::Enum(_index, ping_m_type))
-                ] => {
+                [(_, Value::Long(request_id)), (_, Value::String(topic)), (_, Value::Enum(_index, ping_m_type))] => {
                     Some(PingRequestResponse {
-                        request_id: request_id.clone(),
+                        request_id: *request_id,
                         topic: topic.clone(),
-                        mtype: if ping_m_type.as_str() == "REQUEST" { PingRequestResponseType::Request } else { PingRequestResponseType::Response },
+                        mtype: if ping_m_type.as_str() == "REQUEST" {
+                            PingRequestResponseType::Request
+                        } else {
+                            PingRequestResponseType::Response
+                        },
                     })
                 }
                 _ => {
                     warn!("Unable to match AVRO Record to to PingRequestResponse");
                     None
                 }
-            }
+            },
             _ => {
                 warn!("Unable to match AVRO Record.");
                 None
@@ -85,10 +90,10 @@ impl ToProtocolMessage for PingRequestResponse {
         object.put("topic", Value::String(self.topic.clone()));
         match self.mtype {
             PingRequestResponseType::Request => {
-                object.put("type".into(), Value::Enum(0, "REQUEST".into()));
+                object.put("type", Value::Enum(0, "REQUEST".into()));
             }
             PingRequestResponseType::Response => {
-                object.put("type".into(), Value::Enum(1, "RESPONSE".into()));
+                object.put("type", Value::Enum(1, "RESPONSE".into()));
             }
         }
 
@@ -102,16 +107,13 @@ impl ToProtocolMessage for PingRequestResponse {
 #[cfg(test)]
 mod tests {
     use crate::avro::Builder;
-    use crate::objects::{FromProtocolMessage, ToProtocolMessage};
     use crate::objects::services::ping::{PingRequestResponse, PingRequestResponseType};
+    use crate::objects::{FromProtocolMessage, ToProtocolMessage};
     use crate::utils::get_avro_path;
 
     fn test_load_save_req_rep(mt: PingRequestResponseType) {
         let mb = Builder::new(get_avro_path().as_str());
-        let req = PingRequestResponse::new(
-            0,
-            String::from("test"),
-            mt);
+        let req = PingRequestResponse::new(0, String::from("test"), mt);
 
         let req_envelope_opt = req.save(&mb);
         assert!(req_envelope_opt.is_some());
@@ -132,7 +134,6 @@ mod tests {
 
         assert_eq!(req, new_req);
     }
-
 
     #[test]
     fn test_load_save_ping() {

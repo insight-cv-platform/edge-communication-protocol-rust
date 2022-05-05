@@ -1,9 +1,9 @@
+use crate::avro::{Builder, ProtocolMessage, NOTIFY_MESSAGE_SCHEMA};
+use crate::objects::{FromProtocolMessage, ToProtocolMessage};
 use crate::primitives::{NotifyType, NotifyTypeImpl, Unit};
-use pyo3::prelude::*;
 use avro_rs::types::Value;
 use log::warn;
-use crate::avro::{Builder, NOTIFY_MESSAGE_SCHEMA, ProtocolMessage};
-use crate::objects::{FromProtocolMessage, ToProtocolMessage};
+use pyo3::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
 #[pyclass]
@@ -19,9 +19,7 @@ pub struct NotifyMessage {
 #[pymethods]
 impl NotifyMessage {
     #[new]
-    pub fn new(stream_unit: Unit,
-               saved_ms: u64,
-               notify_type: NotifyType) -> Self {
+    pub fn new(stream_unit: Unit, saved_ms: u64, notify_type: NotifyType) -> Self {
         NotifyMessage {
             stream_unit,
             saved_ms,
@@ -42,44 +40,46 @@ impl NotifyMessage {
 }
 
 impl FromProtocolMessage for NotifyMessage {
-    fn load(message: &ProtocolMessage) -> Option<Self> where Self: Sized {
+    fn load(message: &ProtocolMessage) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if message.schema != NOTIFY_MESSAGE_SCHEMA {
             return None;
         }
         match &message.object {
             Value::Record(fields) => match fields.as_slice() {
-                [
-                (_, Value::Record(stream_unit_fields)),
-                (_, Value::Int(last_element)),
-                (_, Value::Long(saved_ms)),
-                (_, Value::Enum(_index, notify_type)),
-                ] => match stream_unit_fields.as_slice() {
-                    [
-                    (_, Value::Bytes(stream_name)),
-                    (_, Value::Bytes(track_name)),
-                    (_, Value::Enum(_index, track_type)),
-                    (_, Value::Long(unit))
-                    ] => {
-                        Some(NotifyMessage {
-                            stream_unit: Unit::new(stream_name.clone(), track_name.clone(), track_type.clone(), *unit),
-                            saved_ms: *saved_ms as u64,
-                            notify_type: match notify_type.as_str() {
-                                "READY" => NotifyType::ready(last_element.clone() as i16),
-                                "NEW" => NotifyType::new(),
-                                _ => NotifyType { obj: NotifyTypeImpl::NotImplemented }
-                            },
-                        })
-                    }
-                    _ => {
-                        warn!("Unable to match AVRO Record to Unit");
-                        None
+                [(_, Value::Record(stream_unit_fields)), (_, Value::Int(last_element)), (_, Value::Long(saved_ms)), (_, Value::Enum(_index, notify_type))] => {
+                    match stream_unit_fields.as_slice() {
+                        [(_, Value::Bytes(stream_name)), (_, Value::Bytes(track_name)), (_, Value::Enum(_index, track_type)), (_, Value::Long(unit))] => {
+                            Some(NotifyMessage {
+                                stream_unit: Unit::new(
+                                    stream_name.clone(),
+                                    track_name.clone(),
+                                    track_type.clone(),
+                                    *unit,
+                                ),
+                                saved_ms: *saved_ms as u64,
+                                notify_type: match notify_type.as_str() {
+                                    "READY" => NotifyType::ready(*last_element as i16),
+                                    "NEW" => NotifyType::new(),
+                                    _ => NotifyType {
+                                        obj: NotifyTypeImpl::NotImplemented,
+                                    },
+                                },
+                            })
+                        }
+                        _ => {
+                            warn!("Unable to match AVRO Record to Unit");
+                            None
+                        }
                     }
                 }
                 _ => {
                     warn!("Unable to match AVRO Record to to NotifyMessage");
                     None
                 }
-            }
+            },
             _ => {
                 warn!("Unable to match AVRO Record.");
                 None
@@ -91,19 +91,16 @@ impl FromProtocolMessage for NotifyMessage {
 impl ToProtocolMessage for NotifyMessage {
     fn save(&self, mb: &Builder) -> Option<ProtocolMessage> {
         let mut obj = mb.get_record(NOTIFY_MESSAGE_SCHEMA);
-        obj.put(
-            "stream_unit",
-            self.stream_unit.to_avro_record(),
-        );
+        obj.put("stream_unit", self.stream_unit.to_avro_record());
         obj.put("saved_ms", Value::Long(self.saved_ms as i64));
         match &self.notify_type.obj {
             NotifyTypeImpl::Ready(elt) => {
-                obj.put("notify_type".into(), Value::Enum(0, "READY".into()));
-                obj.put("last_element".into(), Value::Int(*elt as i32));
+                obj.put("notify_type", Value::Enum(0, "READY".into()));
+                obj.put("last_element", Value::Int(*elt as i32));
             }
             NotifyTypeImpl::New => {
-                obj.put("notify_type".into(), Value::Enum(1, "NEW".into()));
-                obj.put("last_element".into(), Value::Int(-1));
+                obj.put("notify_type", Value::Enum(1, "NEW".into()));
+                obj.put("last_element", Value::Int(-1));
             }
             NotifyTypeImpl::NotImplemented => {
                 panic!("Unable to handle unsupported NotifyType");
@@ -119,12 +116,12 @@ impl ToProtocolMessage for NotifyMessage {
 
 #[cfg(test)]
 mod tests {
-    use uuid::Uuid;
     use crate::avro::Builder;
-    use crate::objects::{FromProtocolMessage, ToProtocolMessage};
     use crate::objects::services::storage::notify_message::NotifyMessage;
-    use crate::primitives::{NotifyType, pack_stream_name, pack_track_name, Unit};
+    use crate::objects::{FromProtocolMessage, ToProtocolMessage};
+    use crate::primitives::{pack_stream_name, pack_track_name, NotifyType, Unit};
     use crate::utils::get_avro_path;
+    use uuid::Uuid;
 
     fn test_load_save_req_int(notify_type: NotifyType) {
         let mb = Builder::new(get_avro_path().as_str());
@@ -134,8 +131,15 @@ mod tests {
         let stream_name = pack_stream_name(&stream_uuid);
 
         let req = NotifyMessage::new(
-            Unit::new(stream_name.to_vec(), track_name.to_vec(), String::from("VIDEO"), 3),
-            0, notify_type);
+            Unit::new(
+                stream_name.to_vec(),
+                track_name.to_vec(),
+                String::from("VIDEO"),
+                3,
+            ),
+            0,
+            notify_type,
+        );
 
         let req_envelope_opt = req.save(&mb);
         assert!(req_envelope_opt.is_some());
