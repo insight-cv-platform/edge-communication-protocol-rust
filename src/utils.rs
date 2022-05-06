@@ -1,22 +1,31 @@
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::fs;
 use avro_rs::types::Value;
-
+use std::collections::HashMap;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 pub fn load_file(prefix: &Path, schema_name: &str) -> String {
     let path = prefix.join(schema_name);
-    fs::read_to_string(&path).expect(format!("File {} cannot be loaded", &path.to_str().unwrap()).as_str())
+    fs::read_to_string(&path).unwrap_or_else(|e| {
+        panic!(
+            "File {} cannot be loaded. Error is {:?}",
+            &path.to_str().unwrap(),
+            e
+        )
+    })
 }
 
 pub fn gen_hash_map(s: &HashMap<String, String>) -> Value {
-    Value::Map(s.iter().map(|(k, v)| (k.clone(), Value::String(v.clone()))).collect())
+    Value::Map(
+        s.iter()
+            .map(|(k, v)| (k.clone(), Value::String(v.clone())))
+            .collect(),
+    )
 }
 
 pub fn value_to_string(v: &Value) -> Option<String> {
     match v {
         Value::String(s) => Some(s.clone()),
-        _ => None
+        _ => None,
     }
 }
 

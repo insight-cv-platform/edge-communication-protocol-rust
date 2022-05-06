@@ -1,9 +1,9 @@
+use crate::utils::fill_byte_array;
+use avro_rs::types::Value;
+use pyo3::prelude::*;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use avro_rs::types::Value;
 use uuid::Uuid;
-use pyo3::prelude::*;
-use crate::utils::fill_byte_array;
 
 pub const TRACK_NAME_MAX_LENGTH: usize = 16;
 pub const STREAM_NAME_MAX_LENGTH: usize = 16;
@@ -26,7 +26,6 @@ impl Default for TrackType {
     }
 }
 
-
 #[derive(Debug, Default, Clone, PartialEq)]
 #[pyclass]
 pub struct Payload {
@@ -40,10 +39,7 @@ pub struct Payload {
 impl Payload {
     #[new]
     pub fn new(data: Vec<u8>, attributes: HashMap<String, String>) -> Self {
-        Payload {
-            data,
-            attributes,
-        }
+        Payload { data, attributes }
     }
 
     fn __repr__(&self) -> String {
@@ -94,10 +90,10 @@ pub fn get_empty_track_name() -> TrackName {
 }
 
 pub fn pack_stream_name(stream_name: &Uuid) -> StreamName {
-    stream_name.as_bytes().clone()
+    *stream_name.as_bytes()
 }
 
-pub fn pack_track_name(track_name: &String) -> std::result::Result<TrackName, String> {
+pub fn pack_track_name(track_name: &str) -> std::result::Result<TrackName, String> {
     let name_len = track_name.len();
     if name_len > TRACK_NAME_MAX_LENGTH {
         let error = format!(
@@ -129,7 +125,7 @@ pub fn track_type_literal_to_track_type(literal: &str) -> TrackType {
     match literal {
         "VIDEO" => TrackType::Video,
         "META" => TrackType::Meta,
-        _ => TrackType::NotImplemented
+        _ => TrackType::NotImplemented,
     }
 }
 
@@ -167,14 +163,17 @@ fn get_track_type_enum(track_type: &TrackType) -> Value {
     match track_type {
         TrackType::Video => Value::Enum(0, "VIDEO".into()),
         TrackType::Meta => Value::Enum(1, "META".into()),
-        TrackType::NotImplemented => panic!("Not supported track type")
+        TrackType::NotImplemented => panic!("Not supported track type"),
     }
 }
 
 impl Unit {
     pub fn to_avro_record(&self) -> Value {
         Value::Record(vec![
-            ("stream_name".into(), Value::Bytes(self.stream_name.to_vec())),
+            (
+                "stream_name".into(),
+                Value::Bytes(self.stream_name.to_vec()),
+            ),
             ("track_name".into(), Value::Bytes(self.track_name.to_vec())),
             ("track_type".into(), get_track_type_enum(&self.track_type)),
             ("unit".into(), Value::Long(self.unit)),
@@ -195,19 +194,20 @@ pub struct NotifyType {
     pub obj: NotifyTypeImpl,
 }
 
+#[allow(clippy::new_without_default)]
 #[pymethods]
 impl NotifyType {
     #[staticmethod]
     pub fn ready(element: ElementType) -> Self {
         NotifyType {
-            obj: NotifyTypeImpl::Ready(element)
+            obj: NotifyTypeImpl::Ready(element),
         }
     }
 
     #[staticmethod]
     pub fn new() -> Self {
         NotifyType {
-            obj: NotifyTypeImpl::New
+            obj: NotifyTypeImpl::New,
         }
     }
 
@@ -222,5 +222,3 @@ impl NotifyType {
     #[classattr]
     const __hash__: Option<Py<PyAny>> = None;
 }
-
-

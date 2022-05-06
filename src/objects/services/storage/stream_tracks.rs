@@ -1,16 +1,21 @@
-use crate::primitives::{StreamName, track_type_literal_to_track_type, TrackInfo, TrackName, TrackType};
+use crate::avro::{
+    Builder, ProtocolMessage, STREAM_TRACKS_REQUEST_SCHEMA, STREAM_TRACKS_RESPONSE_SCHEMA,
+    TRACK_INFO_SCHEMA,
+};
+use crate::objects::{FromProtocolMessage, ToProtocolMessage};
+use crate::primitives::{
+    track_type_literal_to_track_type, StreamName, TrackInfo, TrackName, TrackType,
+};
+use crate::utils::fill_byte_array;
 use avro_rs::types::Value;
 use log::warn;
 use pyo3::prelude::*;
-use crate::avro::{Builder, ProtocolMessage, STREAM_TRACKS_REQUEST_SCHEMA, STREAM_TRACKS_RESPONSE_SCHEMA, TRACK_INFO_SCHEMA};
-use crate::objects::{FromProtocolMessage, ToProtocolMessage};
-use crate::utils::fill_byte_array;
 
 fn get_track_type_enum(track_type: &TrackType) -> Value {
     match track_type {
         TrackType::Video => Value::Enum(0, "VIDEO".into()),
         TrackType::Meta => Value::Enum(1, "META".into()),
-        TrackType::NotImplemented => panic!("Not supported track type")
+        TrackType::NotImplemented => panic!("Not supported track type"),
     }
 }
 
@@ -28,9 +33,7 @@ pub struct StreamTracksResponse {
 #[pymethods]
 impl StreamTracksResponse {
     #[new]
-    pub fn new(request_id: i64,
-               stream_name: StreamName,
-               tracks: Vec<TrackInfo>) -> Self {
+    pub fn new(request_id: i64, stream_name: StreamName, tracks: Vec<TrackInfo>) -> Self {
         StreamTracksResponse {
             request_id,
             stream_name,
@@ -55,7 +58,8 @@ impl ToProtocolMessage for StreamTracksResponse {
         let mut obj = mb.get_record(STREAM_TRACKS_RESPONSE_SCHEMA);
         obj.put("request_id", Value::Long(self.request_id));
         obj.put("stream_name", Value::Bytes(self.stream_name.to_vec()));
-        let tracks: Vec<Value> = self.tracks
+        let tracks: Vec<Value> = self
+            .tracks
             .iter()
             .map(|track_info| {
                 let mut r = mb.get_record(TRACK_INFO_SCHEMA);
@@ -74,17 +78,17 @@ impl ToProtocolMessage for StreamTracksResponse {
 }
 
 impl FromProtocolMessage for StreamTracksResponse {
-    fn load(message: &ProtocolMessage) -> Option<Self> where Self: Sized {
+    fn load(message: &ProtocolMessage) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if message.schema != STREAM_TRACKS_RESPONSE_SCHEMA {
             return None;
         }
         match &message.object {
             Value::Record(fields) => match fields.as_slice() {
-                [
-                (_, Value::Long(request_id)),
-                (_, Value::Bytes(stream_name)),
-                (_, Value::Array(tracks))
-                ] => {
+                [(_, Value::Long(request_id)), (_, Value::Bytes(stream_name)), (_, Value::Array(tracks))] =>
+                {
                     let mut sn = StreamName::default();
                     fill_byte_array(&mut sn, stream_name);
                     let track_records: Vec<Option<TrackInfo>> = tracks.iter().map(|t| match t {
@@ -107,16 +111,15 @@ impl FromProtocolMessage for StreamTracksResponse {
                         _ => None
                     }).collect();
 
-                    let valid_track_records: Vec<_> = track_records.iter()
-                        .filter(|x| x.is_some())
-                        .map(|x| x.unwrap().clone()).collect();
+                    let valid_track_records: Vec<_> =
+                        track_records.iter().flatten().copied().collect();
 
                     if valid_track_records.len() < track_records.len() {
                         warn!("Not all track info records are parsed well.");
                         None
                     } else {
                         Some(StreamTracksResponse {
-                            request_id: request_id.clone(),
+                            request_id: *request_id,
                             stream_name: sn,
                             tracks: valid_track_records,
                         })
@@ -126,7 +129,7 @@ impl FromProtocolMessage for StreamTracksResponse {
                     warn!("Unable to match AVRO Record to to StreamTracksResponse");
                     None
                 }
-            }
+            },
             _ => {
                 warn!("Unable to match AVRO Record.");
                 None
@@ -149,9 +152,7 @@ pub struct StreamTracksRequest {
 #[pymethods]
 impl StreamTracksRequest {
     #[new]
-    pub fn new(request_id: i64,
-               topic: String,
-               stream_name: StreamName) -> Self {
+    pub fn new(request_id: i64, topic: String, stream_name: StreamName) -> Self {
         StreamTracksRequest {
             request_id,
             topic,
@@ -185,21 +186,21 @@ impl ToProtocolMessage for StreamTracksRequest {
 }
 
 impl FromProtocolMessage for StreamTracksRequest {
-    fn load(message: &ProtocolMessage) -> Option<Self> where Self: Sized {
+    fn load(message: &ProtocolMessage) -> Option<Self>
+    where
+        Self: Sized,
+    {
         if message.schema != STREAM_TRACKS_REQUEST_SCHEMA {
             return None;
         }
         match &message.object {
             Value::Record(fields) => match fields.as_slice() {
-                [
-                (_, Value::Long(request_id)),
-                (_, Value::String(topic)),
-                (_, Value::Bytes(stream_name))
-                ] => {
+                [(_, Value::Long(request_id)), (_, Value::String(topic)), (_, Value::Bytes(stream_name))] =>
+                {
                     let mut sn = StreamName::default();
                     fill_byte_array(&mut sn, stream_name);
                     Some(StreamTracksRequest {
-                        request_id: request_id.clone(),
+                        request_id: *request_id,
                         topic: topic.clone(),
                         stream_name: sn,
                     })
@@ -208,7 +209,7 @@ impl FromProtocolMessage for StreamTracksRequest {
                     warn!("Unable to match AVRO Record to to StreamTracksRequest");
                     None
                 }
-            }
+            },
             _ => {
                 warn!("Unable to match AVRO Record.");
                 None
@@ -217,15 +218,16 @@ impl FromProtocolMessage for StreamTracksRequest {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use uuid::Uuid;
     use crate::avro::Builder;
+    use crate::objects::services::storage::stream_tracks::{
+        StreamTracksRequest, StreamTracksResponse,
+    };
     use crate::objects::{FromProtocolMessage, ToProtocolMessage};
-    use crate::objects::services::storage::stream_tracks::{StreamTracksRequest, StreamTracksResponse};
     use crate::primitives::{pack_stream_name, pack_track_name, TrackInfo, TrackType};
     use crate::utils::get_avro_path;
+    use uuid::Uuid;
 
     #[test]
     fn test_load_save_req() {
@@ -256,7 +258,6 @@ mod tests {
         assert_eq!(req, new_req);
     }
 
-
     #[test]
     fn test_load_save_rep() {
         let mb = Builder::new(get_avro_path().as_str());
@@ -265,10 +266,11 @@ mod tests {
         let stream_name = pack_stream_name(&stream_uuid);
         let track_name = pack_track_name(&String::from("test")).unwrap();
 
-
-        let rep = StreamTracksResponse::new(0, stream_name, vec![
-            TrackInfo::new(TrackType::Video, track_name)
-        ]);
+        let rep = StreamTracksResponse::new(
+            0,
+            stream_name,
+            vec![TrackInfo::new(TrackType::Video, track_name)],
+        );
 
         let rep_envelope_opt = rep.save(&mb);
         assert!(rep_envelope_opt.is_some());

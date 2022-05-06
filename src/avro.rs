@@ -1,21 +1,25 @@
+use pyo3::prelude::*;
 use std::collections::HashMap;
 use std::path::Path;
 use std::str;
-use pyo3::prelude::*;
 
-use avro_rs::{from_avro_datum, Schema, to_avro_datum};
-use avro_rs::schema::Name;
-use avro_rs::types::{Record, Value};
-use log::warn;
-use pyo3::PyClass;
 use crate::objects::services::ffprobe::{ServicesFFProbeRequest, ServicesFFProbeResponse};
 use crate::objects::services::ping::PingRequestResponse;
 use crate::objects::services::storage::notify_message::NotifyMessage;
-use crate::objects::services::storage::stream_track_unit_elements::{StreamTrackUnitElementsRequest, StreamTrackUnitElementsResponse};
-use crate::objects::services::storage::stream_track_units::{StreamTrackUnitsRequest, StreamTrackUnitsResponse};
+use crate::objects::services::storage::stream_track_unit_elements::{
+    StreamTrackUnitElementsRequest, StreamTrackUnitElementsResponse,
+};
+use crate::objects::services::storage::stream_track_units::{
+    StreamTrackUnitsRequest, StreamTrackUnitsResponse,
+};
 use crate::objects::services::storage::stream_tracks::{StreamTracksRequest, StreamTracksResponse};
 use crate::objects::services::storage::unit_element_message::UnitElementMessage;
-use crate::objects::{ToProtocolMessage, FromProtocolMessage};
+use crate::objects::{FromProtocolMessage, ToProtocolMessage};
+use avro_rs::schema::Name;
+use avro_rs::types::{Record, Value};
+use avro_rs::{from_avro_datum, to_avro_datum, Schema};
+use log::warn;
+use pyo3::PyClass;
 
 use crate::utils;
 
@@ -32,10 +36,14 @@ pub const TRANSPORT_SCHEMAS: &str = "transport";
 pub const NOTIFY_MESSAGE_SCHEMA: &str = "insight.transport.NotifyMessage.avsc";
 pub const STREAM_TRACKS_REQUEST_SCHEMA: &str = "insight.transport.StreamTracksRequest.avsc";
 pub const STREAM_TRACKS_RESPONSE_SCHEMA: &str = "insight.transport.StreamTracksResponse.avsc";
-pub const STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA: &str = "insight.transport.StreamTrackUnitElementsRequest.avsc";
-pub const STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA: &str = "insight.transport.StreamTrackUnitElementsResponse.avsc";
-pub const STREAM_TRACK_UNITS_REQUEST_SCHEMA: &str = "insight.transport.StreamTrackUnitsRequest.avsc";
-pub const STREAM_TRACK_UNITS_RESPONSE_SCHEMA: &str = "insight.transport.StreamTrackUnitsResponse.avsc";
+pub const STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA: &str =
+    "insight.transport.StreamTrackUnitElementsRequest.avsc";
+pub const STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA: &str =
+    "insight.transport.StreamTrackUnitElementsResponse.avsc";
+pub const STREAM_TRACK_UNITS_REQUEST_SCHEMA: &str =
+    "insight.transport.StreamTrackUnitsRequest.avsc";
+pub const STREAM_TRACK_UNITS_RESPONSE_SCHEMA: &str =
+    "insight.transport.StreamTrackUnitsResponse.avsc";
 pub const MESSAGE_ENVELOPE_SCHEMA: &str = "insight.transport.MessageEnvelope.avsc";
 pub const PING_REQUEST_RESPONSE_SCHEMA: &str = "insight.transport.PingRequestResponse.avsc";
 
@@ -59,7 +67,10 @@ impl BuilderImpl {
             (TRANSPORT_SCHEMAS, STREAM_TRACKS_REQUEST_SCHEMA),
             (TRANSPORT_SCHEMAS, STREAM_TRACKS_RESPONSE_SCHEMA),
             (TRANSPORT_SCHEMAS, STREAM_TRACK_UNIT_ELEMENTS_REQUEST_SCHEMA),
-            (TRANSPORT_SCHEMAS, STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA),
+            (
+                TRANSPORT_SCHEMAS,
+                STREAM_TRACK_UNIT_ELEMENTS_RESPONSE_SCHEMA,
+            ),
             (TRANSPORT_SCHEMAS, STREAM_TRACK_UNITS_REQUEST_SCHEMA),
             (TRANSPORT_SCHEMAS, STREAM_TRACK_UNITS_RESPONSE_SCHEMA),
             (TRANSPORT_SCHEMAS, PING_REQUEST_RESPONSE_SCHEMA),
@@ -72,7 +83,12 @@ impl BuilderImpl {
     pub fn new(path_prefix: &str) -> BuilderImpl {
         let schemas_raw: Vec<String> = Self::schema_files()
             .iter()
-            .map(|schema| utils::load_file(Path::new(path_prefix).join(Path::new(schema.0)).as_path(), schema.1))
+            .map(|schema| {
+                utils::load_file(
+                    Path::new(path_prefix).join(Path::new(schema.0)).as_path(),
+                    schema.1,
+                )
+            })
             .collect();
         let schemas_raw_str: Vec<&str> = schemas_raw.iter().map(|s| s.as_str()).collect();
 
@@ -83,33 +99,37 @@ impl BuilderImpl {
             match s {
                 Schema::Enum {
                     name:
-                    Name {
-                        name,
-                        namespace,
-                        aliases: _,
-                    },
+                        Name {
+                            name,
+                            namespace,
+                            aliases: _,
+                        },
                     doc: _,
                     symbols: _,
                 } => {
-                    let mut full_name = namespace.clone().unwrap_or(String::from("insight.transport"));
-                    full_name.push_str(".");
+                    let mut full_name = namespace
+                        .clone()
+                        .unwrap_or_else(|| String::from("insight.transport"));
+                    full_name.push('.');
                     full_name.push_str(name);
                     full_name.push_str(".avsc");
                     named_schemas.insert(full_name, s.clone());
                 }
                 Schema::Record {
                     name:
-                    Name {
-                        name,
-                        namespace,
-                        aliases: _,
-                    },
+                        Name {
+                            name,
+                            namespace,
+                            aliases: _,
+                        },
                     doc: _,
                     fields: _,
                     lookup: _,
                 } => {
-                    let mut full_name = namespace.clone().unwrap_or(String::from("insight.transport"));
-                    full_name.push_str(".");
+                    let mut full_name = namespace
+                        .clone()
+                        .unwrap_or_else(|| String::from("insight.transport"));
+                    full_name.push('.');
                     full_name.push_str(name);
                     full_name.push_str(".avsc");
                     named_schemas.insert(full_name, s.clone());
@@ -146,20 +166,20 @@ impl BuilderImpl {
 
     pub fn read_protocol_message(&self, from: &Vec<u8>) -> Result<(String, Value), String> {
         let envelope_schema = self.get_schema(MESSAGE_ENVELOPE_SCHEMA).unwrap();
-        let envelope = from_avro_datum(&envelope_schema, &mut from.as_slice(), None);
+        let envelope = from_avro_datum(envelope_schema, &mut from.as_slice(), None);
 
         match envelope {
             Ok(envelope) => match envelope {
                 Value::Record(fields) => match fields.as_slice() {
                     [(s_field_name, Value::Bytes(schema)), (p_field_name, Value::Bytes(payload))]
-                    if s_field_name == "schema" && p_field_name == "payload" =>
-                        {
-                            let schema = str::from_utf8(schema.as_slice());
-                            match schema {
-                                Ok(schema_name) => {
-                                    let inner_schema = self.get_schema(schema_name);
+                        if s_field_name == "schema" && p_field_name == "payload" =>
+                    {
+                        let schema = str::from_utf8(schema.as_slice());
+                        match schema {
+                            Ok(schema_name) => {
+                                let inner_schema = self.get_schema(schema_name);
 
-                                    match inner_schema {
+                                match inner_schema {
                                         Some(inner_schema) => {
                                             let inner = from_avro_datum(inner_schema,
                                                                         &mut payload.clone().as_slice(), None);
@@ -171,12 +191,12 @@ impl BuilderImpl {
                                         }
                                         _ => Err(format!("No valid schema found in schema catalog for the schema ({}) in serialized record", schema_name))
                                     }
-                                }
-                                _ => Err(String::from(
-                                    "Failed to parse schema name, not a valid UTF-8",
-                                )),
                             }
+                            _ => Err(String::from(
+                                "Failed to parse schema name, not a valid UTF-8",
+                            )),
                         }
+                    }
                     _ => Err(String::from(
                         "No outer AVRO record (MessageEnvelope) matched",
                     )),
@@ -205,7 +225,7 @@ impl Builder {
     #[new]
     pub fn new(path_prefix: &str) -> Builder {
         Builder {
-            builder: BuilderImpl::new(path_prefix)
+            builder: BuilderImpl::new(path_prefix),
         }
     }
 
@@ -213,27 +233,30 @@ impl Builder {
         match self.builder.read_protocol_message(&obj) {
             Ok((schema, object)) => Some(ProtocolMessage { schema, object }),
             Err(m) => {
-                warn!("Unable to decode the message from the envelope. Error is {}", m);
+                warn!(
+                    "Unable to decode the message from the envelope. Error is {}",
+                    m
+                );
                 None
             }
         }
     }
 
     pub fn save_from_avro(&self, message: ProtocolMessage) -> Vec<u8> {
-        self.builder.pack_message_into_envelope(message.schema.as_str(), message.object)
+        self.builder
+            .pack_message_into_envelope(message.schema.as_str(), message.object)
     }
 
     pub fn save(&self, obj: &PyAny) -> Option<Vec<u8>> {
-        fn try_to<T: Clone + PyClass + ToProtocolMessage>(mb: &Builder, x: &PyAny) -> Option<Vec<u8>> {
+        fn try_to<T: Clone + PyClass + ToProtocolMessage>(
+            mb: &Builder,
+            x: &PyAny,
+        ) -> Option<Vec<u8>> {
             if x.is_instance_of::<T>().unwrap() {
                 let ro: T = x.extract().unwrap();
                 let protocol_message_res = ro.save(mb);
-                match protocol_message_res {
-                    None => None,
-                    Some(m) => {
-                        Some(mb.save_from_avro(m))
-                    }
-                }
+
+                protocol_message_res.map(|m| mb.save_from_avro(m))
             } else {
                 None
             }
@@ -253,31 +276,28 @@ impl Builder {
     }
 
     pub fn load(&self, message: Vec<u8>) -> Option<PyObject> {
-        fn try_from<T: FromProtocolMessage + PyClass + Into<PyClassInitializer<T>>>(message: &ProtocolMessage) -> Option<PyObject> {
+        fn try_from<T: FromProtocolMessage + PyClass + Into<PyClassInitializer<T>>>(
+            message: &ProtocolMessage,
+        ) -> Option<PyObject> {
             let gil = Python::acquire_gil();
             let py = gil.python();
 
-            match T::load(message) {
-                None => None,
-                Some(o) => Some(Py::new(py, o).unwrap().to_object(py))
-            }
+            T::load(message).map(|o| Py::new(py, o).unwrap().to_object(py))
         }
 
         match self.load_to_avro(message) {
             None => None,
-            Some(obj) => {
-                try_from::<UnitElementMessage>(&obj)
-                    .or_else(|| try_from::<NotifyMessage>(&obj))
-                    .or_else(|| try_from::<PingRequestResponse>(&obj))
-                    .or_else(|| try_from::<ServicesFFProbeRequest>(&obj))
-                    .or_else(|| try_from::<ServicesFFProbeResponse>(&obj))
-                    .or_else(|| try_from::<StreamTrackUnitElementsRequest>(&obj))
-                    .or_else(|| try_from::<StreamTrackUnitElementsResponse>(&obj))
-                    .or_else(|| try_from::<StreamTracksRequest>(&obj))
-                    .or_else(|| try_from::<StreamTracksResponse>(&obj))
-                    .or_else(|| try_from::<StreamTrackUnitsRequest>(&obj))
-                    .or_else(|| try_from::<StreamTrackUnitsResponse>(&obj))
-            }
+            Some(obj) => try_from::<UnitElementMessage>(&obj)
+                .or_else(|| try_from::<NotifyMessage>(&obj))
+                .or_else(|| try_from::<PingRequestResponse>(&obj))
+                .or_else(|| try_from::<ServicesFFProbeRequest>(&obj))
+                .or_else(|| try_from::<ServicesFFProbeResponse>(&obj))
+                .or_else(|| try_from::<StreamTrackUnitElementsRequest>(&obj))
+                .or_else(|| try_from::<StreamTrackUnitElementsResponse>(&obj))
+                .or_else(|| try_from::<StreamTracksRequest>(&obj))
+                .or_else(|| try_from::<StreamTracksResponse>(&obj))
+                .or_else(|| try_from::<StreamTrackUnitsRequest>(&obj))
+                .or_else(|| try_from::<StreamTrackUnitsResponse>(&obj)),
         }
     }
 }
