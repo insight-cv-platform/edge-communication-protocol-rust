@@ -4,6 +4,7 @@ use std::path::Path;
 use std::str;
 
 use crate::objects::services::ffprobe::{ServicesFFProbeRequest, ServicesFFProbeResponse};
+use crate::objects::services::keep_alive::KeepAliveMessage;
 use crate::objects::services::ping::PingRequestResponse;
 use crate::objects::services::storage::notify_message::NotifyMessage;
 use crate::objects::services::storage::stream_track_unit_elements::{
@@ -46,6 +47,7 @@ pub const STREAM_TRACK_UNITS_RESPONSE_SCHEMA: &str =
     "insight.transport.StreamTrackUnitsResponse.avsc";
 pub const MESSAGE_ENVELOPE_SCHEMA: &str = "insight.transport.MessageEnvelope.avsc";
 pub const PING_REQUEST_RESPONSE_SCHEMA: &str = "insight.transport.PingRequestResponse.avsc";
+pub const KEEPALIVE_MESSAGE_SCHEMA: &str = "insight.transport.KeepAliveMessage.avsc";
 
 pub const SERVICE_FFPROBE_SCHEMAS: &str = "services/ffprobe";
 pub const SERVICES_FFPROBE_REQUEST_SCHEMA: &str = "insight.ffprobe.Request.avsc";
@@ -74,6 +76,7 @@ impl BuilderImpl {
             (TRANSPORT_SCHEMAS, STREAM_TRACK_UNITS_REQUEST_SCHEMA),
             (TRANSPORT_SCHEMAS, STREAM_TRACK_UNITS_RESPONSE_SCHEMA),
             (TRANSPORT_SCHEMAS, PING_REQUEST_RESPONSE_SCHEMA),
+            (TRANSPORT_SCHEMAS, KEEPALIVE_MESSAGE_SCHEMA),
             (TRANSPORT_SCHEMAS, MESSAGE_ENVELOPE_SCHEMA),
             (SERVICE_FFPROBE_SCHEMAS, SERVICES_FFPROBE_REQUEST_SCHEMA),
             (SERVICE_FFPROBE_SCHEMAS, SERVICES_FFPROBE_RESPONSE_SCHEMA),
@@ -273,6 +276,7 @@ impl Builder {
             .or_else(|| try_to::<StreamTracksResponse>(self, obj))
             .or_else(|| try_to::<StreamTrackUnitsRequest>(self, obj))
             .or_else(|| try_to::<StreamTrackUnitsResponse>(self, obj))
+            .or_else(|| try_to::<KeepAliveMessage>(self, obj))
     }
 
     pub fn load(&self, message: Vec<u8>) -> Option<PyObject> {
@@ -297,7 +301,8 @@ impl Builder {
                 .or_else(|| try_from::<StreamTracksRequest>(&obj))
                 .or_else(|| try_from::<StreamTracksResponse>(&obj))
                 .or_else(|| try_from::<StreamTrackUnitsRequest>(&obj))
-                .or_else(|| try_from::<StreamTrackUnitsResponse>(&obj)),
+                .or_else(|| try_from::<StreamTrackUnitsResponse>(&obj))
+                .or_else(|| try_from::<KeepAliveMessage>(&obj)),
         }
     }
 }
@@ -319,27 +324,4 @@ mod tests {
         let mb = Builder::new(get_avro_path().as_str());
         let _r = mb.get_record(UNIT_ELEMENT_MESSAGE_SCHEMA);
     }
-
-    // #[test]
-    // fn test_serialization_deserialization() {
-    //     let mb = Builder::new(get_avro_path().as_str());
-    //
-    //     let track_name = pack_track_name(&String::from("test")).unwrap();
-    //     let stream_uuid = Uuid::parse_str("fa807469-fbb3-4f63-b1a9-f63fbbf90f41").unwrap();
-    //     let stream_name = pack_stream_name(&stream_uuid);
-    //
-    //     let req = UnitElementMessage::new(
-    //         Unit::new(stream_name.to_vec(), track_name.to_vec(), String::from("VIDEO"), 3),
-    //         2,
-    //         vec![0, 1],
-    //         HashMap::from([("a".into(), "b".into()), ("c".into(), "d".into())]),
-    //         true,
-    //     );
-    //
-    //     let gil = Python::acquire_gil();
-    //     let py = gil.python();
-    //     let obj = Py::new(py, req).unwrap().to_object(py);
-    //     let pyobj = obj.as_ref(py);
-    //     let bytes = mb.save(pyobj).unwrap();
-    // }
 }
