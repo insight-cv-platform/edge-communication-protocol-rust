@@ -1,4 +1,5 @@
 use crate::avro::Builder;
+use crate::objects::services::keep_alive::KeepAliveMessage;
 use crate::primitives::{NotifyType, Payload, TrackInfo, TrackType, Unit};
 use objects::services::ffprobe::{
     ServicesFFProbeRequest, ServicesFFProbeResponse, ServicesFFProbeResponseType,
@@ -41,5 +42,6 @@ fn protocol(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<Payload>()?;
     m.add_class::<TrackType>()?;
     m.add_class::<NotifyType>()?;
+    m.add_class::<KeepAliveMessage>()?;
     Ok(())
 }
