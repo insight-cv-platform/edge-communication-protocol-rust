@@ -12,7 +12,7 @@ FROM deps AS builder
 
 COPY . /opt
 WORKDIR /opt
-RUN echo cargo test | bash -l -s
+RUN echo cargo -v test | bash -l -s
 RUN echo maturin build -r | bash -l -s
 
 FROM python:3.10-buster
