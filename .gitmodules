@@ -3,3 +3,7 @@
 	url = https://github.com/insight-platform/API.git
 	branch = main
 
+[submodule "avro_rs"]
+	path = avro_rs
+	url = https://github.com/insight-platform/avro-rs
+	branch = main
