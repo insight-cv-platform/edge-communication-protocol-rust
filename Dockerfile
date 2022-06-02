@@ -2,6 +2,7 @@ FROM python:3.10-buster AS deps
 
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 RUN echo 'source $HOME/.cargo/env' >> $HOME/.bashrc
+RUN cat $HOME/.cargo/config
 
 WORKDIR /opt
 RUN /usr/local/bin/python -m pip install --upgrade pip
