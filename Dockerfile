@@ -12,6 +12,7 @@ FROM deps AS builder
 
 COPY . /opt
 WORKDIR /opt
+
 RUN echo cargo -v test | bash -l -s
 RUN echo maturin build -r | bash -l -s
 
