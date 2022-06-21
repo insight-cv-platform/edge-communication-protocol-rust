@@ -325,3 +325,5 @@ mod tests {
         let _r = mb.get_record(UNIT_ELEMENT_MESSAGE_SCHEMA);
     }
 }
+
+fn test() {}
